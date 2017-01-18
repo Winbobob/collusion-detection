@@ -113,16 +113,3 @@ force.on('tick', function(e) {
 })
 
 force.start()
-
-
-
-
-
-
-
-
-
-
-
-
-
