@@ -14,9 +14,7 @@ d3.tsv('data.tsv', function(data) {
     console.log(window.innerWidth);
     var margin = { top: 30, right: 30, bottom: 40, left: 50 };
     var height = window.innerHeight - margin.top - margin.bottom - 200,
-        width = window.innerWidth - margin.left - margin.right - 300,
-        barWidth = 50,
-        barOffset = 5;
+        width = window.innerWidth - margin.left - margin.right - 300;
 
     var tempColor;
     var colors = d3.scale.linear()
@@ -28,8 +26,11 @@ d3.tsv('data.tsv', function(data) {
         .range([0, height]);
 
     var xScale = d3.scale.ordinal()
-        .domain(d3.range(0, bardata.length))
-        .rangeBands([0, width], 0.2);
+    //    # d3.range([start, ]stop[, step])
+    //    If step is omitted, it defaults to 1
+    //    d3.range(0, 1, 0.2) // [0, 0.2, 0.4, 0.6000000000000001, 0.8]
+        .domain(d3.range(0, bardata.length)) 
+        .rangeBands([0, width], 0.2); // rangeBands(interval, padding);
 
     var tooltip = d3.select('body').append('div')
         .style('position', 'absolute')
@@ -52,9 +53,10 @@ d3.tsv('data.tsv', function(data) {
             .attr('x', function(data, index) {
                 return xScale(index);
             })
+            // initial height and y position, for later transition animation.
             .attr('height', 0)
-            .attr('y', height)
-
+            .attr('y', height - 0)
+            
         .on('mouseover', function(data) {
             tooltip.transition()
                 .style('opacity', .9)
@@ -73,8 +75,9 @@ d3.tsv('data.tsv', function(data) {
                 .style('opacity', 1)
                 .style('fill', tempColor)
         })
-
+    // transition is a way to animate selection.
     myChart.transition()
+        // compare to the initial status L59-60
         .attr('height', function(data) {
             return yScale(data);
         })
@@ -108,13 +111,13 @@ d3.tsv('data.tsv', function(data) {
         .domain([0, bardata.length])
         .range([0, width])
 
-    var hAxis = d3.svg.axis()
+    var yAxis = d3.svg.axis()
         .scale(hGuideScale)
         .orient('bottom')
         .ticks(10)
 
     var hGuide = d3.select('svg').append('g')
-        hAxis(hGuide)
+        yAxis(hGuide)
         hGuide.attr('transform', 'translate(' + margin.left + ', ' + (height + margin.top) + ')')
         hGuide.selectAll('path')
             .style({ fill: 'none', stroke: '#000' })
