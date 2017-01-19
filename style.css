@@ -4,22 +4,22 @@ path.link {
   stroke-width: 1.0px;
 }
 
-path.link.twofive.normal {
+path.link.twofive {
   opacity: 0.25;
   stroke: #A52A2A;
 }
 
-path.link.fivezero.normal {
+path.link.fivezero {
   opacity: 0.25;
   stroke: #A52A2A;
 }
 
-path.link.sevenfive.normal {
+path.link.sevenfive {
   opacity: 0.25;
   stroke: #A52A2A;
 }
 
-path.link.onezerozero.normal {
+path.link.onezerozero {
   opacity: 0.25;
   stroke: #8FBC8F;
 }

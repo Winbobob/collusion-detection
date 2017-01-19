@@ -1,4 +1,4 @@
-var scoreSection = ['link twofive', 'link fivezero', 'link sevenfive', 'link onezerozero'];
+var classSection = ['link twofive', 'link fivezero', 'link sevenfive', 'link onezerozero'];
 var filepaths = ['collusion_detection_sample_724.txt', 
                  'collusion_detection_sample_733_wikib.txt', 
                  'collusion_detection_sample_749_final.txt',
@@ -44,13 +44,13 @@ var vScale = d3.scale.linear()
 // assign a type per value to encode opacity
 links.forEach(function(link) {
 	if (vScale(link.score) <= 25) {
-		link.type = 'twofive normal';
+		link.type = 'twofive';
 	} else if (vScale(link.score) <= 80 && vScale(link.score) > 25) {
-		link.type = 'fivezero normal';
+		link.type = 'fivezero';
 	} else if (vScale(link.score) <= 90 && vScale(link.score) > 80) {
-		link.type = 'sevenfive normal';
+		link.type = 'sevenfive';
 	} else if (vScale(link.score) <= 100 && vScale(link.score) > 90) {
-		link.type = 'onezerozero normal';
+		link.type = 'onezerozero';
 	}
 });
     
@@ -71,14 +71,14 @@ svg.append('svg:defs').selectAll('marker').data(['end'])
 
 // add the links and the arrows
 var path = svg.append('svg:g').selectAll('path').data(links)
-    .enter().append('svg:path')
+    .enter().append('path')
         .attr('class', function(d) { return 'link ' + d.type; })
         .attr('marker-end', 'url(#end)')
         .attr('reviewer_actor_id', function(d){ return d.reviewer_actor_id.name })
         .attr('reviewee_actor_id', function(d){ return d.reviewee_actor_id.name });
 
 // define the nodes
-var node = svg.selectAll('.node').data(d3.values(nodes))
+var node = svg.selectAll('node').data(d3.values(nodes)) // ???
     .enter().append('g')
         .attr('class', 'node')
         .attr('active', false)
@@ -97,7 +97,7 @@ node.append('text')
     .attr('text-anchor', 'beginning')
     
 
-// add the curvy lines
+// add the curvy lines ???
 force.on('tick', function(d) {
     path.attr('d', function(d) {
         var dx = d.reviewee_actor_id.x - d.reviewer_actor_id.x,
@@ -118,64 +118,94 @@ force.on('tick', function(d) {
 
 // Click function
 node.on('click', function(d) {
+    // reset other active node(s)
+    svg.selectAll('node').filter(function(node) {
+        if(node.attr('active') === 'true') {
+            node.select('circle').transition()
+                .attr('r', 6)
+                .attr('fill', '#ccc');
+            node.select('text').transition()
+                .attr('x', 12)
+                .style('fill', 'black')
+                .style('font', '10px sans-serif');
+        }
+    })
     if(d3.select(this).attr('active') === 'false') {
+        // Change active status
+        d3.select(this).attr('active', true);
+        
+        // circle transition
+        d3.select(this).select('circle').transition()
+            .attr('r', 12)
+            .style('fill', 'lightsteelblue');
         // text transition
         d3.select(this).select('text').transition()
             .attr('x', 22)
             .style('fill', 'blue')
-            .style('font', '20px sans-serif')
+            .style('font', '20px sans-serif');
         // related path transition
         d3.select(this).select('text')
             .call(function (d) {
                 var unityId = d.text();
                 d3.selectAll('path').filter(function(path) {
-                    if(typeof path['reviewer_actor_id'] !== 'undefined') {
+                    if(typeof path['reviewer_actor_id'] !== 'undefined' &&
+                       typeof path['reviewee_actor_id'] !== 'undefined') {
                         if(path['reviewer_actor_id'].id === unityId ||
                            path['reviewee_actor_id'].id === unityId) {
                             var className = d3.select(this).attr('class');
-                            d3.select(this)
-                                .classed(className, false)
-                                .classed(className.substring(0, className.lastIndexOf(' ')) + ' highlight', true)
+                            if(classSection.indexOf(className) === -1) {
+                                d3.select(this)
+                                    .classed(className, false)
+                                    .classed(className.substring(0, className.lastIndexOf(' ')) + ' highlight', true)
+                            }
+                            else {
+                                d3.select(this)
+                                    .classed(className, false)
+                                    .classed(className + ' highlight', true)
+                            }
                         }
                         else{
                             var className = d3.select(this).attr('class');
-                            d3.select(this)
-                                .classed(className, false)
-                                .classed(className.substring(0, className.lastIndexOf(' ')) + ' hidden', true)
+                            if(classSection.indexOf(className) === -1) {
+                                d3.select(this)
+                                    .classed(className, false)
+                                    .classed(className.substring(0, className.lastIndexOf(' ')) + ' hidden', true)
+                            }
+                            else {
+                                d3.select(this)
+                                    .classed(className, false)
+                                    .classed(className + ' hidden', true)
+                            }
                         }
                     }
                 }) 
             })
-        // circle transition
-        d3.select(this).select('circle').transition()
-            .attr('r', 12)
-            .style('fill', 'lightsteelblue');
-    //    d3.select(this).select('text')
-    //        .call(function(d){ 
-    //            unityid = d[0][0].innerHTML;
-    //            // console.log(unityid);
-    //            d3.selectAll('[reviewer_actor_id='+unityid+'],[reviewee_actor_id='+unityid+']')
-    //                .call(function(d){ 
-    //                    d[0].forEach(function(p){
-    //                        if(p.attributes[0].nodeValue.substring(p.attributes[0].nodeValue.lastIndexOf(' ')+1)!='highlight'){
-    //                            p.attributes[0].nodeValue=p.attributes[0].nodeValue+' highlight';
-    //                        }
-    //                    });
-    //                })
-    //        })
-        d3.select(this).attr('active', true);
     }
     else {
-         d3.select(this).select('text').transition()
-            .attr('x', 12)
-            .style('fill', 'black')
-            .style('font', '10px sans-serif');
+        // Change active status
+        d3.select(this).attr('active', false);
+        // circle transition
         d3.select(this).select('circle').transition()
             .attr('r', 6)
             .style('fill', '#ccc');
-        d3.select(this).attr('active', false);
+        // text transition
+        d3.select(this).select('text').transition()
+            .attr('x', 12)
+            .style('fill', 'black')
+            .style('font', '10px sans-serif');
+        // Reset all paths when second click on same node
+        d3.selectAll('path').filter(function(path) {
+            var className = d3.select(this).attr('class');
+            if(typeof path['reviewer_actor_id'] !== 'undefined' &&
+                       typeof path['reviewee_actor_id'] !== 'undefined') {
+                if(classSection.indexOf(className) === -1) {
+                    d3.select(this)
+                    .classed(className, false)
+                    .classed(className.substring(0, className.lastIndexOf(' ')), true)
+                }
+            }
+        })
     }
-    
 })
     
 // Highlight node/text/in edge function
