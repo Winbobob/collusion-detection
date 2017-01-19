@@ -4,22 +4,22 @@ path.link {
   stroke-width: 1.0px;
 }
 
-path.link.twofive {
+path.link.twofive.normal {
   opacity: 0.25;
   stroke: #A52A2A;
 }
 
-path.link.fivezero {
+path.link.fivezero.normal {
   opacity: 0.25;
   stroke: #A52A2A;
 }
 
-path.link.sevenfive {
+path.link.sevenfive.normal {
   opacity: 0.25;
   stroke: #A52A2A;
 }
 
-path.link.onezerozero {
+path.link.onezerozero.normal {
   opacity: 0.25;
   stroke: #8FBC8F;
 }
@@ -44,24 +44,24 @@ path.link.onezerozero.highlight {
   stroke-width: 2.5px;
 }
     
-path.link.twofive.hide {
-  opacity: 0;
-  stroke-width: 0px;
+path.link.twofive.hidden {
+  opacity: 0.05;
+  stroke-width: 0.5px;
 }
 
-path.link.fivezero.hide {
-  opacity: 0;
-  stroke-width: 0px;
+path.link.fivezero.hidden {
+  opacity: 0.05;
+  stroke-width: 0.5px;
 }
 
-path.link.sevenfive.hide {
-  opacity: 0;
-  stroke-width: 0px;
+path.link.sevenfive.hidden {
+  opacity: 0.051;
+  stroke-width: 0.5px;
 }
 
-path.link.onezerozero.hide {
-  opacity: 0;
-  stroke-width: 0px;
+path.link.onezerozero.hidden {
+  opacity: 0.05;
+  stroke-width: 0.5px;
 }
 
 circle {

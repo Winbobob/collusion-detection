@@ -1,3 +1,4 @@
+var scoreSection = ['link twofive', 'link fivezero', 'link sevenfive', 'link onezerozero'];
 var filepaths = ['collusion_detection_sample_724.txt', 
                  'collusion_detection_sample_733_wikib.txt', 
                  'collusion_detection_sample_749_final.txt',
@@ -40,16 +41,16 @@ var vScale = d3.scale.linear()
     })])
     .range([0, 100]);
 
-// asign a type per value to encode opacity
+// assign a type per value to encode opacity
 links.forEach(function(link) {
 	if (vScale(link.score) <= 25) {
-		link.type = 'twofive';
+		link.type = 'twofive normal';
 	} else if (vScale(link.score) <= 80 && vScale(link.score) > 25) {
-		link.type = 'fivezero';
+		link.type = 'fivezero normal';
 	} else if (vScale(link.score) <= 90 && vScale(link.score) > 80) {
-		link.type = 'sevenfive';
+		link.type = 'sevenfive normal';
 	} else if (vScale(link.score) <= 100 && vScale(link.score) > 90) {
-		link.type = 'onezerozero';
+		link.type = 'onezerozero normal';
 	}
 });
     
@@ -97,7 +98,7 @@ node.append('text')
     
 
 // add the curvy lines
-force.on('tick', function(e) {
+force.on('tick', function(d) {
     path.attr('d', function(d) {
         var dx = d.reviewee_actor_id.x - d.reviewer_actor_id.x,
             dy = d.reviewee_actor_id.y - d.reviewer_actor_id.y,
@@ -116,12 +117,36 @@ force.on('tick', function(e) {
 })
 
 // Click function
-node.on('click', function(e) {
+node.on('click', function(d) {
     if(d3.select(this).attr('active') === 'false') {
+        // text transition
         d3.select(this).select('text').transition()
             .attr('x', 22)
             .style('fill', 'blue')
-            .style('font', '20px sans-serif');
+            .style('font', '20px sans-serif')
+        // related path transition
+        d3.select(this).select('text')
+            .call(function (d) {
+                var unityId = d.text();
+                d3.selectAll('path').filter(function(path) {
+                    if(typeof path['reviewer_actor_id'] !== 'undefined') {
+                        if(path['reviewer_actor_id'].id === unityId ||
+                           path['reviewee_actor_id'].id === unityId) {
+                            var className = d3.select(this).attr('class');
+                            d3.select(this)
+                                .classed(className, false)
+                                .classed(className.substring(0, className.lastIndexOf(' ')) + ' highlight', true)
+                        }
+                        else{
+                            var className = d3.select(this).attr('class');
+                            d3.select(this)
+                                .classed(className, false)
+                                .classed(className.substring(0, className.lastIndexOf(' ')) + ' hidden', true)
+                        }
+                    }
+                }) 
+            })
+        // circle transition
         d3.select(this).select('circle').transition()
             .attr('r', 12)
             .style('fill', 'lightsteelblue');
@@ -144,8 +169,6 @@ node.on('click', function(e) {
          d3.select(this).select('text').transition()
             .attr('x', 12)
             .style('fill', 'black')
-            .style('stroke', 'none')
-            .style('stroke-width', '.5px')
             .style('font', '10px sans-serif');
         d3.select(this).select('circle').transition()
             .attr('r', 6)
@@ -175,7 +198,7 @@ function highlight_in() {
                 p=d3.select(path)
                 postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
                 if(p.attr('reviewee_actor_id')==unityid){
-                    if(postfix=='hide'){
+                    if(postfix=='hidden'){
                         p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
                         postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
                     }
@@ -184,7 +207,7 @@ function highlight_in() {
                     }
                 }else{
                     if(postfix=='twofive'||postfix=='fivezero'||postfix=='sevenfive'||postfix=='onezerozero'){
-                        p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' hide';
+                        p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' hidden';
                     }
                 }
                 
@@ -211,7 +234,7 @@ function unhighlight_in() {
             d3.selectAll('path')[0].filter(function(path){
                 p=d3.select(path)
                 postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
-                if(postfix=='hide' || postfix=='highlight'){
+                if(postfix=='hidden' || postfix=='highlight'){
                     p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
                 }
             })
@@ -239,7 +262,7 @@ function highlight_out() {
                 p=d3.select(path)
                 postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
                 if(p.attr('reviewer_actor_id')==unityid){
-                    if(postfix=='hide'){
+                    if(postfix=='hidden'){
                         p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
                         postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
                     }
@@ -248,7 +271,7 @@ function highlight_out() {
                     }
                 }else{
                     if(postfix=='twofive'||postfix=='fivezero'||postfix=='sevenfive'||postfix=='onezerozero'){
-                        p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' hide';
+                        p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' hidden';
                     }
                 }
             })
@@ -305,7 +328,7 @@ function highlight_nodes(s,e){
         p=d3.select(path)
         postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
         if(p.attr('reviewer_actor_id')==s && p.attr('reviewee_actor_id')==e){
-            if(postfix=='hide'){
+            if(postfix=='hidden'){
                 p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
                 postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
             }
@@ -314,7 +337,7 @@ function highlight_nodes(s,e){
             }
         }else{
             if(postfix=='twofive'||postfix=='fivezero'||postfix=='sevenfive'||postfix=='onezerozero'){
-                p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' hide';
+                p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' hidden';
             }
         }
     })
