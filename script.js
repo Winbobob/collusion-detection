@@ -3,7 +3,7 @@ var filepaths = ['collusion_detection_sample_724.txt',
                  'collusion_detection_sample_749_final.txt',
                  'collusion_detection_sample_736_OSS.txt'];
 
-d3.json(filepaths[3], function(d){
+d3.json(filepaths[1], function(d){
 var coll_cyc = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
@@ -80,6 +80,7 @@ var path = svg.append('svg:g').selectAll('path').data(links)
 var node = svg.selectAll('.node').data(d3.values(nodes))
     .enter().append('g')
         .attr('class', 'node')
+        .attr('active', false)
         .call(force.drag);
 
 // add the nodes
@@ -116,58 +117,42 @@ force.on('tick', function(e) {
 
 // Click function
 node.on('click', function(e) {
-    d3.select(this).select('text').transition()
-        .duration(750)
-        .attr('x', 22)
-        .style('fill', 'steelblue')
-        .style('stroke', 'lightsteelblue')
-        .style('stroke-width', '.5px')
-        .style('font', '20px sans-serif');
-//    d3.select(this).select('circle').transition()
-//        .duration(750)
-//        .attr('r', 12)
-//        .style('fill', 'lightsteelblue');
-    d3.select(this).select('text')
-        .call(function(d){ 
-            unityid = d[0][0].innerHTML;
-            // console.log(unityid);
-            d3.selectAll('[reviewer_actor_id='+unityid+'],[reviewee_actor_id='+unityid+']')
-                .call(function(d){ 
-                    d[0].forEach(function(p){
-                        if(p.attributes[0].nodeValue.substring(p.attributes[0].nodeValue.lastIndexOf(' ')+1)!='highlight'){
-                            p.attributes[0].nodeValue=p.attributes[0].nodeValue+' highlight';
-                        }
-                    });
-                })
-        })
-})
-
-// Double click function
-node.on('dblclick' ,function(e) {
-    d3.select(this).select('text').transition()
-        .duration(750)
-        .attr('x', 12)
-        .style('fill', 'black')
-        .style('stroke', 'none')
-        .style('stroke-width', '.5px')
-        .style('font', '10px sans-serif');
-//    d3.select(this).select('circle').transition()
-//        .duration(750)
-//        .attr('r', 6)
-//        .style('fill', '#ccc');
-    d3.select(this).select('text')
-        .call(function(d){ 
-            unityid = d[0][0].innerHTML;
-            // console.log(unityid);
-            d3.selectAll('[reviewer_actor_id='+unityid+'],[reviewee_actor_id='+unityid+']')
-                .call(function(d){ 
-                    d[0].forEach(function(p){
-                        if(p.attributes[0].nodeValue.substring(p.attributes[0].nodeValue.lastIndexOf(' ')+1)=='highlight'){
-                            p.attributes[0].nodeValue=p.attributes[0].nodeValue.substring(0,p.attributes[0].nodeValue.lastIndexOf(' '));
-                        }
-                    });
-                })
-        })
+    if(d3.select(this).attr('active') === 'false') {
+        d3.select(this).select('text').transition()
+            .attr('x', 22)
+            .style('fill', 'blue')
+            .style('font', '20px sans-serif');
+        d3.select(this).select('circle').transition()
+            .attr('r', 12)
+            .style('fill', 'lightsteelblue');
+    //    d3.select(this).select('text')
+    //        .call(function(d){ 
+    //            unityid = d[0][0].innerHTML;
+    //            // console.log(unityid);
+    //            d3.selectAll('[reviewer_actor_id='+unityid+'],[reviewee_actor_id='+unityid+']')
+    //                .call(function(d){ 
+    //                    d[0].forEach(function(p){
+    //                        if(p.attributes[0].nodeValue.substring(p.attributes[0].nodeValue.lastIndexOf(' ')+1)!='highlight'){
+    //                            p.attributes[0].nodeValue=p.attributes[0].nodeValue+' highlight';
+    //                        }
+    //                    });
+    //                })
+    //        })
+        d3.select(this).attr('active', true);
+    }
+    else {
+         d3.select(this).select('text').transition()
+            .attr('x', 12)
+            .style('fill', 'black')
+            .style('stroke', 'none')
+            .style('stroke-width', '.5px')
+            .style('font', '10px sans-serif');
+        d3.select(this).select('circle').transition()
+            .attr('r', 6)
+            .style('fill', '#ccc');
+        d3.select(this).attr('active', false);
+    }
+    
 })
     
 // Highlight node/text/in edge function
