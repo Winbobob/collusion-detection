@@ -1,0 +1,84 @@
+path.link {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.0px;
+}
+
+path.link.twofive {
+  opacity: 0.25;
+  stroke: #A52A2A;
+}
+
+path.link.fivezero {
+  opacity: 0.25;
+  stroke: #A52A2A;
+}
+
+path.link.sevenfive {
+  opacity: 0.25;
+  stroke: #A52A2A;
+}
+
+path.link.onezerozero {
+  opacity: 0.25;
+  stroke: #8FBC8F;
+}
+
+path.link.twofive.highlight {
+  opacity: 0.75;
+  stroke-width: 2.5px;
+}
+
+path.link.fivezero.highlight {
+  opacity: 0.75;
+  stroke-width: 2.5px;
+}
+
+path.link.sevenfive.highlight {
+  opacity: 0.75;
+  stroke-width: 2.5px;
+}
+
+path.link.onezerozero.highlight {
+  opacity: 0.75;
+  stroke-width: 2.5px;
+}
+    
+path.link.twofive.hide {
+  opacity: 0;
+  stroke-width: 0px;
+}
+
+path.link.fivezero.hide {
+  opacity: 0;
+  stroke-width: 0px;
+}
+
+path.link.sevenfive.hide {
+  opacity: 0;
+  stroke-width: 0px;
+}
+
+path.link.onezerozero.hide {
+  opacity: 0;
+  stroke-width: 0px;
+}
+
+circle {
+  fill: #ccc;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+text {
+  fill: #000;
+  font: 10px sans-serif;
+  pointer-events: none;
+}
+
+#horizon-controls {
+  position: absolute;
+  width: 940px;
+  padding: 10px;
+  z-index: 1;
+}
