@@ -8,7 +8,7 @@ d3.json(filepaths[1], function(d){
 var coll_cyc = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
-// Compute the distance nodes from the links
+// Populate the nodes from the links
 links.forEach(function(link) {
     link.reviewer_actor_id = nodes[link.reviewer_actor_id] || (nodes[link.reviewer_actor_id] = { id: link.reviewer_actor_id });
     link.reviewee_actor_id = nodes[link.reviewee_actor_id] || (nodes[link.reviewee_actor_id] = { id: link.reviewee_actor_id });
@@ -16,7 +16,7 @@ links.forEach(function(link) {
     
 var w = window.innerWidth;
 var h = window.innerHeight;
-var margin = { top: 0, bottom: 0, left: 100, right: 100 };
+var margin = { top: 0, bottom: 0, left: 50, right: 50 };
 var width = w - margin.left - margin.right;
 var height = h - margin.top - margin.bottom;
 
@@ -25,7 +25,6 @@ var svg = d3.select('body').append('svg')
     .attr('height', height);
     
 var force = d3.layout.force()
-    // Since nodes is a hashtable, d3.values() returns an array containing the values.
 //    .nodes(d3.values(nodes))
 //    .links(links)
     .nodes(d3.values(nodes))
@@ -78,7 +77,8 @@ var path = svg.append('svg:g').selectAll('path').data(links)
         .attr('reviewee_actor_id', function(d){ return d.reviewee_actor_id.name });
 
 // define the nodes
-var node = svg.selectAll('node').data(d3.values(nodes)) // ???
+// Since nodes is a hashtable, d3.values() returns an array containing the values.
+var node = svg.selectAll('node').data(d3.values(nodes))
     .enter().append('g')
         .attr('class', 'node')
         .attr('active', false)
@@ -97,7 +97,7 @@ node.append('text')
     .attr('text-anchor', 'beginning')
     
 
-// add the curvy lines ???
+// Use elliptical arc path segments to doubly-encode directionality.
 force.on('tick', function(d) {
     path.attr('d', function(d) {
         var dx = d.reviewee_actor_id.x - d.reviewer_actor_id.x,
@@ -119,17 +119,18 @@ force.on('tick', function(d) {
 // Click function
 node.on('click', function(d) {
     // reset other active node(s)
-    svg.selectAll('node').filter(function(node) {
-        if(node.attr('active') === 'true') {
-            node.select('circle').transition()
-                .attr('r', 6)
-                .attr('fill', '#ccc');
-            node.select('text').transition()
-                .attr('x', 12)
-                .style('fill', 'black')
-                .style('font', '10px sans-serif');
-        }
-    })
+    d3.selectAll('.node[active = true]')
+        .select('circle').transition()
+            .attr('r', 5)
+            .style('fill', '#ccc')
+    d3.selectAll('.node[active = true]')
+        .select('text').transition()
+            .attr('x', 12)
+            .style('fill', 'black')
+            .style('font', '10px sans-serif');
+    d3.selectAll('.node[active = true]')
+        .attr('active', 'false');
+   
     if(d3.select(this).attr('active') === 'false') {
         // Change active status
         d3.select(this).attr('active', true);
@@ -186,8 +187,7 @@ node.on('click', function(d) {
         d3.select(this).attr('active', false);
         // circle transition
         d3.select(this).select('circle').transition()
-            .attr('r', 6)
-            .style('fill', '#ccc');
+            .attr('r', 5)
         // text transition
         d3.select(this).select('text').transition()
             .attr('x', 12)
@@ -197,7 +197,7 @@ node.on('click', function(d) {
         d3.selectAll('path').filter(function(path) {
             var className = d3.select(this).attr('class');
             if(typeof path['reviewer_actor_id'] !== 'undefined' &&
-                       typeof path['reviewee_actor_id'] !== 'undefined') {
+               typeof path['reviewee_actor_id'] !== 'undefined') {
                 if(classSection.indexOf(className) === -1) {
                     d3.select(this)
                     .classed(className, false)
