@@ -116,25 +116,24 @@ force.on('tick', function(d) {
     });
 })
 
-// Click function
+// Click function (attr 'active' -> node and attr 'highlight/hidden' -> link)
 node.on('click', function(d) {
-    // reset other active node(s)
-    d3.selectAll('.node[active = true]')
-        .select('circle').transition()
-            .attr('r', 5)
-            .style('fill', '#ccc')
-    d3.selectAll('.node[active = true]')
-        .select('text').transition()
-            .attr('x', 12)
-            .style('fill', 'black')
-            .style('font', '10px sans-serif');
-    d3.selectAll('.node[active = true]')
-        .attr('active', 'false');
-   
     if(d3.select(this).attr('active') === 'false') {
+        // reset other active node(s)
+        d3.selectAll('.node[active = true]')
+            .select('circle').transition()
+                .attr('r', 5)
+                .style('fill', '#ccc')
+        d3.selectAll('.node[active = true]')
+            .select('text').transition()
+                .attr('x', 12)
+                .style('fill', 'black')
+                .style('font', '10px sans-serif');
+        d3.selectAll('.node[active = true]')
+            .attr('active', 'false');
+        // Start change this node
         // Change active status
         d3.select(this).attr('active', true);
-        
         // circle transition
         d3.select(this).select('circle').transition()
             .attr('r', 12)
@@ -188,6 +187,7 @@ node.on('click', function(d) {
         // circle transition
         d3.select(this).select('circle').transition()
             .attr('r', 5)
+            .style('fill', '#ccc')
         // text transition
         d3.select(this).select('text').transition()
             .attr('x', 12)
