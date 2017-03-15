@@ -1,4 +1,6 @@
+var scoreSection = ['twofive', 'fivezero', 'sevenfive', 'onezerozero'];
 var classSection = ['link twofive', 'link fivezero', 'link sevenfive', 'link onezerozero'];
+
 var filepaths = ['collusion_detection_sample_724.txt', 
                  'collusion_detection_sample_733_wikib.txt', 
                  'collusion_detection_sample_749_final.txt',
@@ -73,12 +75,12 @@ var path = svg.append('svg:g').selectAll('path').data(links)
     .enter().append('path')
         .attr('class', function(d) { return 'link ' + d.type; })
         .attr('marker-end', 'url(#end)')
-        .attr('reviewer_actor_id', function(d){ return d.reviewer_actor_id.name })
-        .attr('reviewee_actor_id', function(d){ return d.reviewee_actor_id.name });
+        .attr('reviewer_actor_id', function(d){ return d.reviewer_actor_id.id })
+        .attr('reviewee_actor_id', function(d){ return d.reviewee_actor_id.id });
 
 // define the nodes
 // Since nodes is a hashtable, d3.values() returns an array containing the values.
-var node = svg.selectAll('node').data(d3.values(nodes))
+var node = svg.append('svg:g').selectAll('node').data(force.nodes())
     .enter().append('g')
         .attr('class', 'node')
         .attr('active', false)
@@ -96,7 +98,7 @@ node.append('text')
     .attr('x', 12)
     .attr('text-anchor', 'beginning')
     
-
+// Draw link curves and arrows
 // Use elliptical arc path segments to doubly-encode directionality.
 force.on('tick', function(d) {
     path.attr('d', function(d) {
@@ -117,6 +119,7 @@ force.on('tick', function(d) {
 })
 
 // Click function (attr 'active' -> node and attr 'highlight/hidden' -> link)
+// highlight/unhighlight certain node and corresponding links
 node.on('click', function(d) {
     if(d3.select(this).attr('active') === 'false') {
         // reset other active node(s)
@@ -137,7 +140,7 @@ node.on('click', function(d) {
         // circle transition
         d3.select(this).select('circle').transition()
             .attr('r', 12)
-            .style('fill', 'lightsteelblue');
+            .style('fill', 'blue');
         // text transition
         d3.select(this).select('text').transition()
             .attr('x', 22)
@@ -208,29 +211,36 @@ node.on('click', function(d) {
     }
 })
     
+
+
+
+// not checked yet
+// https://bl.ocks.org/mbostock/4062045
+
+
 // Highlight node/text/in edge function
 function highlight_in() {
     d3.select(this).select('text').transition()
         .duration(750)
         .attr('x', 22)
-        .style('fill', 'steelblue')
-        .style('stroke', 'lightsteelblue')
+        .style('fill', 'blue')
+        .style('stroke', 'blue')
         .style('stroke-width', '.5px')
         .style('font', '20px sans-serif');
 //    d3.select(this).select('circle').transition()
 //        .duration(750)
 //        .attr('r', 12)
-//        .style('fill', 'lightsteelblue');
+//        .style('fill', 'blue');
     d3.select(this).select('text')
         .call(function(d){
             unityid = d[0][0].innerHTML;
             d3.selectAll('path')[0].filter(function(path){
                 p=d3.select(path)
-                postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
+                postfix=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue)[0] // obtain path status
                 if(p.attr('reviewee_actor_id')==unityid){
                     if(postfix=='hidden'){
                         p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
-                        postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
+                        postfix=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue)[0]
                     }
                     if(postfix=='twofive'||postfix=='fivezero'||postfix=='sevenfive'||postfix=='onezerozero'){
                         p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' highlight';
@@ -263,7 +273,7 @@ function unhighlight_in() {
             unityid = d[0][0].innerHTML;
             d3.selectAll('path')[0].filter(function(path){
                 p=d3.select(path)
-                postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
+                postfix=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue)[0]
                 if(postfix=='hidden' || postfix=='highlight'){
                     p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
                 }
@@ -276,25 +286,25 @@ function highlight_out() {
     d3.select(this).select('text').transition()
         .duration(750)
         .attr('x', 22)
-        .style('fill', 'steelblue')
-        .style('stroke', 'lightsteelblue')
+        .style('fill', 'blue')
+        .style('stroke', 'blue')
         .style('stroke-width', '.5px')
         .style('font', '20px sans-serif');
 //    d3.select(this).select('circle').transition()
 //        .duration(750)
 //        .attr('r', 16)
-//        .style('fill', 'lightsteelblue');
+//        .style('fill', 'blue');
     d3.select(this).select('text')
         .call(function(d){ 
             unityid = d[0][0].innerHTML;
             // console.log(unityid);
             d3.selectAll('path')[0].filter(function(path){
                 p=d3.select(path)
-                postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
+                postfix=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue)[0]
                 if(p.attr('reviewer_actor_id')==unityid){
                     if(postfix=='hidden'){
                         p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
-                        postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
+                        postfix=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue)[0]
                     }
                     if(postfix=='twofive'||postfix=='fivezero'||postfix=='sevenfive'||postfix=='onezerozero'){
                         p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' highlight';
@@ -336,55 +346,62 @@ function highlight_out() {
 //        })
 //}
     
-function highlight_nodes(s,e){
-//    d3.select(this).select('text').transition()
-//        .duration(750)
-//        .attr('x', 22)
-//        .style('fill', 'steelblue')
-//        .style('stroke', 'lightsteelblue')
-//        .style('stroke-width', '.5px')
-//        .style('font', '20px sans-serif');
+function highlight_nodes(reviewer_id, reviewee_id){
     d3.selectAll('text')[0].filter(function(text){
-        t=d3.select(text)
-        if(t[0][0].textContent==s||t[0][0].textContent==e){
-            t.style('fill', 'steelblue');
-            t.style('stroke', 'lightsteelblue');
-            t.style('stroke-width', '.5px');
-            t.style('font', '20px sans-serif');
+        text=d3.select(text)
+        if(text[0][0].textContent == reviewer_id ||text[0][0].textContent == reviewee_id){
+            text.transition()
+            .attr('x', 22)
+            .style('fill', 'blue')
+            .style('font', '20px sans-serif');       
         }
-        
     })
     d3.selectAll('path')[0].filter(function(path){
         p=d3.select(path)
-        postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
-        if(p.attr('reviewer_actor_id')==s && p.attr('reviewee_actor_id')==e){
-            if(postfix=='hidden'){
-                p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue.substring(0,p[0][0].attributes[0].nodeValue.lastIndexOf(' '));
-                postfix=p[0][0].attributes[0].nodeValue.substring(p[0][0].attributes[0].nodeValue.lastIndexOf(' ')+1)
-            }
-            if(postfix=='twofive'||postfix=='fivezero'||postfix=='sevenfive'||postfix=='onezerozero'){
-                p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' highlight';
-            }
-        }else{
-            if(postfix=='twofive'||postfix=='fivezero'||postfix=='sevenfive'||postfix=='onezerozero'){
-                p[0][0].attributes[0].nodeValue=p[0][0].attributes[0].nodeValue+' hidden';
+        nodeValue=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue);
+        if(nodeValue && nodeValue.length > 0){
+            postfix=nodeValue[0];
+            if((p.attr('reviewer_actor_id') == reviewer_id && p.attr('reviewee_actor_id') == reviewee_id)||
+               p.attr('reviewer_actor_id') == reviewee_id && p.attr('reviewee_actor_id') == reviewer_id){
+                if(scoreSection.indexOf(postfix) !== -1){
+                    p[0][0].attributes[0].nodeValue += ' highlight';
+                }else if(postfix == 'hidden'){
+                    p[0][0].attributes[0].nodeValue.replace('hidden', 'highlight');
+                }
+            }else{
+                
             }
         }
     })
 }
 
+// Show different graphs according to top radio button selection
 d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
-    // console.log(this.value);
+//    // Before highlight collusion links
+//    // Change existing 'highlight' attr to 'hidden' or add 'hidden' attr
+//    d3.selectAll('path')[0].filter(function(path){
+//        p=d3.select(path);
+//        nodeValue=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue);
+//        if(nodeValue && nodeValue.length > 0){
+//            postfix=nodeValue[0];
+//            if(postfix == 'highlight'){
+//                p[0][0].attributes[0].nodeValue.replace('highlight', 'hidden');
+//            }else if(scoreSection.indexOf(postfix) !== -1){
+//                p[0][0].attributes[0].nodeValue += ' hidden';
+//            }
+//        }
+//    })
+        
     if(this.value=='strong'){
         d3.selectAll('.node')
             .call(function(d){
                 console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewee_actor_id='+n.__data__.name+']');
+                    paths=d3.selectAll('[reviewee_actor_id='+n.__data__.id+']');
                     strong_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/onezerozero/); })
                     if(paths[0].length > 0){
                         if(Math.floor((strong_paths.length/paths[0].length)*100)>80){
-                            console.log(n.__data__.name + '  Percentage: ' + Math.floor((strong_paths.length/paths[0].length)*100));
+                            console.log(n.__data__.id + '  Percentage: ' + Math.floor((strong_paths.length/paths[0].length)*100));
                             if (typeof highlight_in == 'function') {
                                 highlight_in.apply(n);
                             }
@@ -397,10 +414,10 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
             .call(function(d){
                 //console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewee_actor_id='+n.__data__.name+']');
+                    paths=d3.selectAll('[reviewee_actor_id='+n.__data__.id+']');
                     weak_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/fivezero/) || d.attributes[0].nodeValue.match(/twofive/) || d.attributes[0].nodeValue.match(/sevenfive/); })
                     if(paths[0].length > 0){
-                        console.log(n.__data__.name + '  Percentage: ' + Math.floor((weak_paths.length/paths[0].length)*100));
+                        console.log(n.__data__.id + '  Percentage: ' + Math.floor((weak_paths.length/paths[0].length)*100));
                         if(Math.floor((weak_paths.length/paths[0].length)*100)>80){
                             if (typeof highlight_in == 'function') {
                                 highlight_in.apply(n);
@@ -414,11 +431,11 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
             .call(function(d){
                 //console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewer_actor_id='+n.__data__.name+']');
+                    paths=d3.selectAll('[reviewer_actor_id='+n.__data__.id+']');
                     easy_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/onezerozero/); })
                     if(paths[0].length > 0){
                         if(Math.floor((easy_paths.length/paths[0].length)*100)>80){
-                            //console.log(n.__data__.name + '  Percentage: ' + Math.floor((easy_paths.length/paths[0].length)*100));
+                            //console.log(n.__data__.id + '  Percentage: ' + Math.floor((easy_paths.length/paths[0].length)*100));
                             if (typeof highlight_out == 'function') {
                                 highlight_out.apply(n);
                             }
@@ -431,10 +448,10 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
             .call(function(d){
                 //console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewer_actor_id='+n.__data__.name+']');
+                    paths=d3.selectAll('[reviewer_actor_id='+n.__data__.id+']');
                     easy_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/fivezero/) || d.attributes[0].nodeValue.match(/twofive/); })
                     if(paths[0].length > 0){
-                        console.log(n.__data__.name + '  Percentage: ' + Math.floor((easy_paths.length/paths[0].length)*100));
+                        console.log(n.__data__.id + '  Percentage: ' + Math.floor((easy_paths.length/paths[0].length)*100));
                         if(Math.floor((easy_paths.length/paths[0].length)*100)>90){
                             
                             if (typeof highlight_out == 'function') {
@@ -445,16 +462,13 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
                 });
             });
     }else if(this.value=='colludes'){
-        // console.log(coll_cyc);
         coll_cyc.forEach(function(coll){
-            //console.log(coll)
             c=coll.colluders
             len=c.length
             for(var i = 0; i < len; i++){
-                s=c[i%len].id
-                e=c[(i+1)%len].id
-                //console.log(s+' --> '+e)
-                highlight_nodes(s,e)
+                for(var j = i + 1; j < len; j++){
+                    highlight_nodes(c[i].id, c[j].id);
+                }
             }
         });
     }else{
