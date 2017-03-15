@@ -27,8 +27,6 @@ var svg = d3.select('body').append('svg')
     .attr('height', height);
     
 var force = d3.layout.force()
-//    .nodes(d3.values(nodes))
-//    .links(links)
     .nodes(d3.values(nodes))
     .links([])
     .size([width, height])
@@ -347,20 +345,28 @@ function highlight_out() {
 //}
     
 function highlight_nodes(reviewer_id, reviewee_id){
-    d3.selectAll('text')[0].filter(function(text){
-        text=d3.select(text)
-        if(text[0][0].textContent == reviewer_id ||text[0][0].textContent == reviewee_id){
-            text.transition()
-            .attr('x', 22)
-            .style('fill', 'blue')
-            .style('font', '20px sans-serif');       
-        }
-    })
+    // highlight related nodes (text and circle)
+    d3.selectAll('.node')
+        .call(function(d){
+            d[0].forEach(function(n){
+                t = d3.select(n).select('text');
+                if(t[0][0].textContent == reviewer_id || t[0][0].textContent == reviewee_id){
+                    t.transition()
+                        .attr('x', 22)
+                        .style('fill', 'blue')
+                        .style('font', '20px sans-serif');
+                    d3.select(n).select('circle').transition()
+                        .attr('r', 12)
+                        .style('fill', 'blue')
+                }
+            })
+        })
+    // highlight related paths
     d3.selectAll('path')[0].filter(function(path){
-        p=d3.select(path)
-        nodeValue=/[a-z]+$/.exec(p[0][0].attributes[0].nodeValue);
+        p = d3.select(path)
+        nodeValue = /[a-z]+$/.exec(p[0][0].attributes[0].nodeValue);
         if(nodeValue && nodeValue.length > 0){
-            postfix=nodeValue[0];
+            postfix = nodeValue[0];
             if((p.attr('reviewer_actor_id') == reviewer_id && p.attr('reviewee_actor_id') == reviewee_id)||
                p.attr('reviewer_actor_id') == reviewee_id && p.attr('reviewee_actor_id') == reviewer_id){
                 if(scoreSection.indexOf(postfix) !== -1){
