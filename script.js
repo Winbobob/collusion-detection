@@ -145,42 +145,40 @@ node.on('click', function(d) {
             .style('fill', 'blue')
             .style('font', '20px sans-serif');
         // related path transition
+        var unityId = '';
         d3.select(this).select('text')
-            .call(function (d) {
-                var unityId = d.text();
-                d3.selectAll('path').filter(function(path) {
-                    if(typeof path['reviewer_actor_id'] !== 'undefined' &&
-                       typeof path['reviewee_actor_id'] !== 'undefined') {
-                        if(path['reviewer_actor_id'].id === unityId ||
-                           path['reviewee_actor_id'].id === unityId) {
-                            var className = d3.select(this).attr('class');
-                            if(classSection.indexOf(className) === -1) {
-                                d3.select(this)
-                                    .classed(className, false)
-                                    .classed(className.substring(0, className.lastIndexOf(' ')) + ' highlight', true)
-                            }
-                            else {
-                                d3.select(this)
-                                    .classed(className, false)
-                                    .classed(className + ' highlight', true)
-                            }
-                        }
-                        else{
-                            var className = d3.select(this).attr('class');
-                            if(classSection.indexOf(className) === -1) {
-                                d3.select(this)
-                                    .classed(className, false)
-                                    .classed(className.substring(0, className.lastIndexOf(' ')) + ' hidden', true)
-                            }
-                            else {
-                                d3.select(this)
-                                    .classed(className, false)
-                                    .classed(className + ' hidden', true)
-                            }
-                        }
+            .call(function (d) { unityId = d.text(); })
+        d3.selectAll('path').filter(function(path) {
+                p = d3.select(this);
+                if(p.attr('reviewer_actor_id') === unityId ||
+                   p.attr('reviewee_actor_id') === unityId) {
+                    className = p.attr('class');
+                    if(className && classSection.indexOf(className) === -1) {
+                        d3.select(this)
+                            .classed(className, false)
+                            .classed(className.substring(0, className.lastIndexOf(' ')) + ' highlight', true)
                     }
-                }) 
-            })
+                    else {
+                        d3.select(this)
+                            .classed(className, false)
+                            .classed(className + ' highlight', true)
+                    }
+                }
+                else{
+                    className = p.attr('class');
+                    if(className && classSection.indexOf(className) === -1) {
+                        d3.select(this)
+                            .classed(className, false)
+                            .classed(className.substring(0, className.lastIndexOf(' ')) + ' hidden', true)
+                    }
+                    else {
+                        d3.select(this)
+                            .classed(className, false)
+                            .classed(className + ' hidden', true)
+                    }
+                }
+            
+        }) 
     }
     else {
         // Change active status
@@ -194,16 +192,14 @@ node.on('click', function(d) {
             .attr('x', 12)
             .style('fill', 'black')
             .style('font', '10px sans-serif');
-        // Reset all paths when second click on same node
-        d3.selectAll('path').filter(function(path) {
-            var className = d3.select(this).attr('class');
-            if(typeof path['reviewer_actor_id'] !== 'undefined' &&
-               typeof path['reviewee_actor_id'] !== 'undefined') {
-                if(classSection.indexOf(className) === -1) {
-                    d3.select(this)
+        // Reset all paths when second click on same node        
+        d3.selectAll('path').filter(function(path){
+            p = d3.select(this);        
+            className = p.attr('class');
+            if(className && classSection.indexOf(className) === -1){
+                d3.select(this)
                     .classed(className, false)
                     .classed(className.substring(0, className.lastIndexOf(' ')), true)
-                }
             }
         })
     }
@@ -344,7 +340,7 @@ function highlight_out() {
 //        })
 //}
     
-function highlight_nodes(reviewer_id, reviewee_id){
+function highlight_collude_nodes_and_paths(reviewer_id, reviewee_id){
     // highlight related nodes (text and circle)
     d3.selectAll('.node')
         .call(function(d){
@@ -362,21 +358,48 @@ function highlight_nodes(reviewer_id, reviewee_id){
             })
         })
     // highlight related paths
-    d3.selectAll('path')[0].filter(function(path){
-        p = d3.select(path)
-        nodeValue = /[a-z]+$/.exec(p[0][0].attributes[0].nodeValue);
-        if(nodeValue && nodeValue.length > 0){
-            postfix = nodeValue[0];
-            if((p.attr('reviewer_actor_id') == reviewer_id && p.attr('reviewee_actor_id') == reviewee_id)||
-               p.attr('reviewer_actor_id') == reviewee_id && p.attr('reviewee_actor_id') == reviewer_id){
-                if(scoreSection.indexOf(postfix) !== -1){
-                    p[0][0].attributes[0].nodeValue += ' highlight';
-                }else if(postfix == 'hidden'){
-                    p[0][0].attributes[0].nodeValue.replace('hidden', 'highlight');
-                }
+    d3.selectAll('path').filter(function(path){
+        p = d3.select(this);        
+        className = p.attr('class');
+        if((p.attr('reviewer_actor_id') == reviewer_id && p.attr('reviewee_actor_id') == reviewee_id)||
+           p.attr('reviewer_actor_id') == reviewee_id && p.attr('reviewee_actor_id') == reviewer_id){
+            if(classSection.indexOf(className) === -1){
+                d3.select(this)
+                    .classed(className, false)
+                    .classed(className.substring(0, className.lastIndexOf(' ')) + ' highlight', true)
             }else{
-                
+                d3.select(this)
+                    .classed(className, false)
+                    .classed(className + ' highlight', true)
             }
+        }else{
+            
+        }
+    })
+}
+    
+function unhighlight_all_nodes_and_paths(){
+    // unhighlight all nodes (text and circle)
+    d3.selectAll('.node')
+        .call(function(d){
+            d[0].forEach(function(n){
+                d3.select(n).select('text').transition()
+                    .attr('x', 12)
+                    .style('fill', 'black')
+                    .style('font', '10px sans-serif');
+                d3.select(n).select('circle').transition()
+                    .attr('r', 5)
+                    .style('fill', '#ccc')
+            })
+        })
+    // unhighlight related paths
+    d3.selectAll('path').filter(function(path){
+        p = d3.select(this);        
+        className = p.attr('class');
+        if(className && classSection.indexOf(className) === -1){
+            d3.select(this)
+                .classed(className, false)
+                .classed(className.substring(0, className.lastIndexOf(' ')), true)
         }
     })
 }
@@ -467,23 +490,18 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
                     }
                 });
             });
-    }else if(this.value=='colludes'){
+    }else if(this.value == 'colludes'){
         coll_cyc.forEach(function(coll){
             c=coll.colluders
             len=c.length
             for(var i = 0; i < len; i++){
                 for(var j = i + 1; j < len; j++){
-                    highlight_nodes(c[i].id, c[j].id);
+                    highlight_collude_nodes_and_paths(c[i].id, c[j].id);
                 }
             }
         });
-    }else{
-        d3.selectAll('.node')
-            .call(function(d){
-                d[0].forEach(function(n){
-                    unhighlight_in.apply(n);
-                });
-            });
+    }else if(this.value == 'all'){
+        unhighlight_all_nodes_and_paths();
     }
 });
     force.start();
