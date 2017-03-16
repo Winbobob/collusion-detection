@@ -340,6 +340,46 @@ function highlight_out() {
 //        })
 //}
     
+    
+// for strong/weak submissions and easy/critical reviewers
+function highlight_nodes_and_paths(review_id_type, id){
+    // highlight related nodes (text and circle)
+    d3.selectAll('.node')
+        .call(function(d){
+            d[0].forEach(function(n){
+                t = d3.select(n).select('text');
+                if(t[0][0].textContent == id){
+                    t.transition()
+                        .attr('x', 22)
+                        .style('fill', 'blue')
+                        .style('font', '20px sans-serif');
+                    d3.select(n).select('circle').transition()
+                        .attr('r', 12)
+                        .style('fill', 'blue')
+                }
+            })
+        })
+    // highlight related paths
+    d3.selectAll('path').filter(function(path){
+        p = d3.select(this);        
+        className = p.attr('class');
+        if(p.attr(review_id_type) == id){
+            if(classSection.indexOf(className) === -1){
+                d3.select(this)
+                    .classed(className, false)
+                    .classed(className.substring(0, className.lastIndexOf(' ')) + ' highlight', true)
+            }else{
+                d3.select(this)
+                    .classed(className, false)
+                    .classed(className + ' highlight', true)
+            }
+        }else{
+            
+        }
+    })
+}
+
+// for collusion detection graph
 function highlight_collude_nodes_and_paths(reviewer_id, reviewee_id){
     // highlight related nodes (text and circle)
     d3.selectAll('.node')
@@ -421,71 +461,66 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
 //        }
 //    })
         
-    if(this.value=='strong'){
+    if(this.value == 'strong'){
         d3.selectAll('.node')
             .call(function(d){
-                console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewee_actor_id='+n.__data__.id+']');
-                    strong_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/onezerozero/); })
+                    paths = d3.selectAll('[reviewee_actor_id = ' + n.__data__.id + ']');
+                    strong_paths = paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/onezerozero/); })
                     if(paths[0].length > 0){
-                        if(Math.floor((strong_paths.length/paths[0].length)*100)>80){
-                            console.log(n.__data__.id + '  Percentage: ' + Math.floor((strong_paths.length/paths[0].length)*100));
-                            if (typeof highlight_in == 'function') {
-                                highlight_in.apply(n);
-                            }
+                        strong_percentage = Math.floor(strong_paths.length / paths[0].length);
+                        if(strong_percentage > 0.8){
+                            console.log('=====Strong Submissions=====');
+                            console.log(n.__data__.id + '  Percentage: ' + strong_percentage);
+                            highlight_nodes_and_paths('reviewee_actor_id', n.__data__.id);
                         }
                     }
                 });
             });
-    }else if(this.value=='weak'){
+    }else if(this.value == 'weak'){
         d3.selectAll('.node')
             .call(function(d){
-                //console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewee_actor_id='+n.__data__.id+']');
-                    weak_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/fivezero/) || d.attributes[0].nodeValue.match(/twofive/) || d.attributes[0].nodeValue.match(/sevenfive/); })
+                    paths = d3.selectAll('[reviewee_actor_id = ' + n.__data__.id + ']');
+                    weak_paths = paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/(fivezero|twofive|sevenfive)/); })
                     if(paths[0].length > 0){
-                        console.log(n.__data__.id + '  Percentage: ' + Math.floor((weak_paths.length/paths[0].length)*100));
-                        if(Math.floor((weak_paths.length/paths[0].length)*100)>80){
-                            if (typeof highlight_in == 'function') {
-                                highlight_in.apply(n);
-                            }
+                        weak_percentage = Math.floor(weak_paths.length / paths[0].length);
+                        if(weak_percentage > 0.8){
+                            console.log('=====Weak Submissions=====');
+                            console.log(n.__data__.id + '  Percentage: ' + weak_percentage);
+                            highlight_nodes_and_paths('reviewee_actor_id', n.__data__.id);
                         }
                     }
                 });
             });
-    }else if(this.value=='easy'){
+    }else if(this.value == 'easy'){
         d3.selectAll('.node')
             .call(function(d){
-                //console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewer_actor_id='+n.__data__.id+']');
-                    easy_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/onezerozero/); })
+                    paths = d3.selectAll('[reviewer_actor_id = ' + n.__data__.id + ']');
+                    easy_paths = paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/onezerozero/); })
                     if(paths[0].length > 0){
-                        if(Math.floor((easy_paths.length/paths[0].length)*100)>80){
-                            //console.log(n.__data__.id + '  Percentage: ' + Math.floor((easy_paths.length/paths[0].length)*100));
-                            if (typeof highlight_out == 'function') {
-                                highlight_out.apply(n);
-                            }
+                        easy_percentage = Math.floor(easy_paths.length / paths[0].length);
+                        if(easy_percentage > 0.8){
+                            console.log('=====Easy-going Submissions=====');
+                            console.log(n.__data__.id + '  Percentage: ' + easy_percentage);
+                            highlight_nodes_and_paths('reviewer_actor_id', n.__data__.id);
                         }
                     }
                 });
             });
-    }else if(this.value=='critical'){
+    }else if(this.value == 'critical'){
         d3.selectAll('.node')
             .call(function(d){
-                //console.log(d[0]);
                 d[0].forEach(function(n){
-                    paths=d3.selectAll('[reviewer_actor_id='+n.__data__.id+']');
-                    easy_paths=paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/fivezero/) || d.attributes[0].nodeValue.match(/twofive/); })
+                    paths=d3.selectAll('[reviewer_actor_id = ' + n.__data__.id + ']');
+                    critial_paths = paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(/(fivezero|twofive)/); })
                     if(paths[0].length > 0){
-                        console.log(n.__data__.id + '  Percentage: ' + Math.floor((easy_paths.length/paths[0].length)*100));
-                        if(Math.floor((easy_paths.length/paths[0].length)*100)>90){
-                            
-                            if (typeof highlight_out == 'function') {
-                                highlight_out.apply(n);
-                            }
+                        critial_percentage = Math.floor(critial_paths.length / paths[0].length);
+                        if(critial_percentage > 0.9){
+                            console.log('=====Critial Submissions=====');
+                            console.log(n.__data__.id + '  Percentage: ' + critial_percentage);
+                            highlight_nodes_and_paths('reviewer_actor_id', n.__data__.id);
                         }
                     }
                 });
