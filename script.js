@@ -340,6 +340,7 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
         unhighlight_all_nodes_and_paths();
         show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
     }else if(this.value == 'colludes'){
+        unhighlight_all_nodes_and_paths();
         coll_cyc.forEach(function(coll){
             c=coll.colluders
             len=c.length
