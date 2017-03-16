@@ -211,7 +211,7 @@ function show_diff_mode_type(mode, review_id_type, regex, threshold){
             paths = d3.selectAll('[' + review_id_type + ' = ' + n.__data__.id + ']');
             selected_paths = paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(regex); })
             if(paths[0].length > 0){
-                percentage = Math.floor(selected_paths.length / paths[0].length);
+                percentage = selected_paths.length / paths[0].length;
                 if(percentage > threshold){
                     console.log('=====' + mode + ' Submissions=====');
                     console.log(n.__data__.id + '  Percentage: ' + percentage);
@@ -299,7 +299,39 @@ function highlight_collude_nodes_and_paths(reviewer_id, reviewee_id){
     })
 }
     
-function unhighlight_all_nodes_and_paths(){
+function unhighlight_all_nodes_and_hide_all_paths(){
+    // unhighlight all nodes (text and circle)
+    d3.selectAll('.node')
+        .call(function(d){
+            d[0].forEach(function(n){
+                d3.select(n).select('text').transition()
+                    .attr('x', 12)
+                    .style('fill', 'black')
+                    .style('font', '10px sans-serif');
+                d3.select(n).select('circle').transition()
+                    .attr('r', 5)
+                    .style('fill', '#ccc')
+            })
+        })
+    // hide related paths
+    d3.selectAll('path').filter(function(path){
+        p = d3.select(this);        
+        className = p.attr('class');
+        if(className){
+            if(classSection.indexOf(className) === -1){
+                d3.select(this)
+                    .classed(className, false)
+                    .classed(className.substring(0, className.lastIndexOf(' ')) + ' hidden', true)
+            }else{
+                d3.select(this)
+                    .classed(className, false)
+                    .classed(className + ' hidden', true)
+            }
+        }
+    })
+}
+    
+function unhighlight_all_nodes_and_unhighlight_all_paths(){
     // unhighlight all nodes (text and circle)
     d3.selectAll('.node')
         .call(function(d){
@@ -327,20 +359,16 @@ function unhighlight_all_nodes_and_paths(){
 
 // Show different graphs according to top radio button selection
 d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {        
+    unhighlight_all_nodes_and_hide_all_paths();
     if(this.value == 'strong'){
-        unhighlight_all_nodes_and_paths();
         show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
     }else if(this.value == 'weak'){
-        unhighlight_all_nodes_and_paths();
         show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
     }else if(this.value == 'easy'){
-        unhighlight_all_nodes_and_paths();
         show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
     }else if(this.value == 'critical'){
-        unhighlight_all_nodes_and_paths();
         show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
     }else if(this.value == 'colludes'){
-        unhighlight_all_nodes_and_paths();
         coll_cyc.forEach(function(coll){
             c=coll.colluders
             len=c.length
@@ -351,7 +379,7 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
             }
         });
     }else if(this.value == 'all'){
-        unhighlight_all_nodes_and_paths();
+        unhighlight_all_nodes_and_unhighlight_all_paths();
     }
 });
     force.start();
