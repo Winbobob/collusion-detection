@@ -5,7 +5,7 @@ var filepaths = ['collusion_detection_sample_724.txt',
                  'collusion_detection_sample_736_OSS.txt'];
 
 d3.json(filepaths[1], function(d){
-var coll_cyc = d.colluder_sycles;
+var coll_cycs = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
 var dropdownElements = ['--'];
@@ -118,6 +118,8 @@ force.on('tick', function(d) {
 // Click function (attr 'active' -> node and attr 'highlight/hidden' -> link)
 // highlight/unhighlight certain node and corresponding links
 node.on('click', function(d) {
+    // make sure only select 'all' radio button can trigger click event
+    if(d3.selectAll('#horizon-controls input[name=mode]:checked').node().id == 'horizon-all'){
     if(d3.select(this).attr('active') === 'false') {
         // reset other active node(s)
         d3.selectAll('.node[active = true]')
@@ -201,6 +203,7 @@ node.on('click', function(d) {
             }
         })
     }
+    }
 })
 
 force.start();
@@ -216,26 +219,19 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
     unhighlight_all_nodes_and_hide_all_paths();
     if(this.value == 'strong'){
         show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
-        populate_dropdown(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
+        populate_dropdown(dropdownElements, this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
     }else if(this.value == 'weak'){
         show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
-        populate_dropdown(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
+        populate_dropdown(dropdownElements, this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
     }else if(this.value == 'easy'){
         show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
-        populate_dropdown(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
+        populate_dropdown(dropdownElements, this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
     }else if(this.value == 'critical'){
         show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
-        populate_dropdown(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
+        populate_dropdown(dropdownElements, this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
     }else if(this.value == 'colludes'){
-        coll_cyc.forEach(function(coll){
-            c=coll.colluders
-            len=c.length
-            for(var i = 0; i < len; i++){
-                for(var j = i + 1; j < len; j++){
-                    highlight_collude_nodes_and_paths(c[i].id, c[j].id);
-                }
-            }
-        });
+        coll_cycs.forEach(function(coll){ show_collusion_cycle(coll); });
+        populate_dropdown(coll_cycs, this.value, undefined, undefined, undefined);
     }else if(this.value == 'all'){
         unhighlight_all_nodes_and_unhighlight_all_paths();
     }
@@ -303,6 +299,18 @@ function highlight_node_and_paths(review_id_type, id){
     })
 }
 
+// for collusion detection graph
+// display one collusion cycle, call function 'highlight_collude_nodes_and_paths'
+function show_collusion_cycle(coll_cyc){
+    c = coll_cyc.colluders
+    len = c.length
+    for(var i = 0; i < len; i++){
+        for(var j = i + 1; j < len; j++){
+            highlight_collude_nodes_and_paths(c[i].id, c[j].id);
+        }
+    }
+}
+    
 // for collusion detection graph
 function highlight_collude_nodes_and_paths(reviewer_id, reviewee_id){
     // highlight related nodes (text and circle)
@@ -404,25 +412,40 @@ function unhighlight_all_nodes_and_unhighlight_all_paths(){
 //**************************************************************
 // dropdown
 //**************************************************************
-function populate_dropdown(mode, review_id_type, regex, threshold){
+function populate_dropdown(dropdown_data, mode, review_id_type, regex, threshold){
     dropdown = d3.select('#horizon-controls')
         .append('select')
             .attr('id', 'dropdown')
-    console.log(dropdownElements);
-    options = dropdown.selectAll('option').data(dropdownElements)
+    console.log(dropdown_data);
+    options = dropdown.selectAll('option').data(dropdown_data)
         .enter().append('option')
-            .text(function(d){ return d; });
+            .text(function(d, i){
+                if(mode == 'colludes'){
+                    str = i.toString() + '.';
+                    d.colluders.forEach(function(data) { str += ' ' + data.id; })
+                    return str;
+                }else{
+                    return d; 
+                }
+            });
     
     // in this case, the 'change' method can access all params pass in
     dropdown.on('change', function(d){
         selectValue = d3.select('select').property('value')
         unhighlight_all_nodes_and_hide_all_paths();
         if(selectValue == '--'){
-            // show all candidates
-            show_diff_mode_type(mode, review_id_type, regex, threshold);
+            if(mode == 'colludes'){
+                coll_cycs.forEach(function(coll){ show_collusion_cycle(dropdown_data); });
+            }else{ // show all candidates
+                show_diff_mode_type(mode, review_id_type, regex, threshold);
+            }
         }else {
-            // show one candidate
-            highlight_node_and_paths(review_id_type, selectValue);
+            if(mode == 'colludes'){
+                index = parseInt(selectValue[0]);
+                show_collusion_cycle(coll_cycs[index]);
+            }else{ // show one candidate
+                highlight_node_and_paths(review_id_type, selectValue);
+            }
         }
     });
 }
