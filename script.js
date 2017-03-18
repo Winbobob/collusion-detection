@@ -8,6 +8,7 @@ d3.json(filepaths[1], function(d){
 var coll_cyc = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
+var dropdownElements = ['--'];
 // Populate the nodes from the links
 links.forEach(function(link) {
     link.reviewer_actor_id = nodes[link.reviewer_actor_id] || (nodes[link.reviewer_actor_id] = { id: link.reviewer_actor_id });
@@ -201,10 +202,45 @@ node.on('click', function(d) {
         })
     }
 })
+
+force.start();
+
+    
+//**************************************************************
+// Radio button
+// Show different graphs according to top radio button selection
+//**************************************************************
+d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {        
+    dropdownElements = ['--'];
+    d3.select('select').remove();
+    unhighlight_all_nodes_and_hide_all_paths();
+    if(this.value == 'strong'){
+        show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
+    }else if(this.value == 'weak'){
+        show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
+    }else if(this.value == 'easy'){
+        show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
+    }else if(this.value == 'critical'){
+        show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
+    }else if(this.value == 'colludes'){
+        coll_cyc.forEach(function(coll){
+            c=coll.colluders
+            len=c.length
+            for(var i = 0; i < len; i++){
+                for(var j = i + 1; j < len; j++){
+                    highlight_collude_nodes_and_paths(c[i].id, c[j].id);
+                }
+            }
+        });
+    }else if(this.value == 'all'){
+        unhighlight_all_nodes_and_unhighlight_all_paths();
+    }
+});
     
 // for strong/weak submissions and easy/critical reviewers
-// call function 'highlight_nodes_and_paths'
+// display all candidates, call function 'highlight_node_and_paths' and 'populate_dropdown'
 function show_diff_mode_type(mode, review_id_type, regex, threshold){
+    iterator = 1;
     d3.selectAll('.node')
     .call(function(d){
         d[0].forEach(function(n){
@@ -215,15 +251,19 @@ function show_diff_mode_type(mode, review_id_type, regex, threshold){
                 if(percentage > threshold){
                     console.log('=====' + mode + ' Submissions=====');
                     console.log(n.__data__.id + '  Percentage: ' + percentage);
-                    highlight_nodes_and_paths(review_id_type, n.__data__.id);
+                    dropdownElements[iterator] = n.__data__.id;
+                    iterator = iterator + 1;
+                    highlight_node_and_paths(review_id_type, n.__data__.id);
                 }
             }
         });
     });
+    populate_dropdown(mode, review_id_type, regex, threshold);
 }
-
+    
 // for strong/weak submissions and easy/critical reviewers
-function highlight_nodes_and_paths(review_id_type, id){
+// display certain candidate
+function highlight_node_and_paths(review_id_type, id){
     // highlight related nodes (text and circle)
     d3.selectAll('.node')
         .call(function(d){
@@ -356,31 +396,32 @@ function unhighlight_all_nodes_and_unhighlight_all_paths(){
         }
     })
 }
-
-// Show different graphs according to top radio button selection
-d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {        
+ 
+    
+//**************************************************************
+// dropdown
+//**************************************************************
+function populate_dropdown(){
+    dropdown = d3.select('#horizon-controls')
+        .append('select')
+            .attr('id', 'dropdown')
+            .on('change', dropdownChange)
+    console.log(dropdownElements);
+    options = dropdown.selectAll('option').data(dropdownElements)
+        .enter().append('option')
+            .text(function(d){ return d; });
+}
+    
+function dropdownChange(mode, review_id_type, regex, threshold){
+    selectValue = d3.select('select').property('value')
     unhighlight_all_nodes_and_hide_all_paths();
-    if(this.value == 'strong'){
-        show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
-    }else if(this.value == 'weak'){
-        show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
-    }else if(this.value == 'easy'){
-        show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
-    }else if(this.value == 'critical'){
-        show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
-    }else if(this.value == 'colludes'){
-        coll_cyc.forEach(function(coll){
-            c=coll.colluders
-            len=c.length
-            for(var i = 0; i < len; i++){
-                for(var j = i + 1; j < len; j++){
-                    highlight_collude_nodes_and_paths(c[i].id, c[j].id);
-                }
-            }
-        });
-    }else if(this.value == 'all'){
-        unhighlight_all_nodes_and_unhighlight_all_paths();
+    if(selectValue == '--'){
+        // show all candidates
+        show_diff_mode_type(mode, review_id_type, regex, threshold);
+    }else {
+        // show one candidate
+        highlight_node_and_paths(review_id_type, selectValue);
     }
-});
-    force.start();
+}
+    
 });
