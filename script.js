@@ -216,12 +216,16 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
     unhighlight_all_nodes_and_hide_all_paths();
     if(this.value == 'strong'){
         show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
+        populate_dropdown(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
     }else if(this.value == 'weak'){
         show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
+        populate_dropdown(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
     }else if(this.value == 'easy'){
         show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
+        populate_dropdown(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
     }else if(this.value == 'critical'){
         show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
+        populate_dropdown(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, 0.9);
     }else if(this.value == 'colludes'){
         coll_cyc.forEach(function(coll){
             c=coll.colluders
@@ -258,7 +262,6 @@ function show_diff_mode_type(mode, review_id_type, regex, threshold){
             }
         });
     });
-    populate_dropdown(mode, review_id_type, regex, threshold);
 }
     
 // for strong/weak submissions and easy/critical reviewers
@@ -401,27 +404,27 @@ function unhighlight_all_nodes_and_unhighlight_all_paths(){
 //**************************************************************
 // dropdown
 //**************************************************************
-function populate_dropdown(){
+function populate_dropdown(mode, review_id_type, regex, threshold){
     dropdown = d3.select('#horizon-controls')
         .append('select')
             .attr('id', 'dropdown')
-            .on('change', dropdownChange)
     console.log(dropdownElements);
     options = dropdown.selectAll('option').data(dropdownElements)
         .enter().append('option')
             .text(function(d){ return d; });
-}
     
-function dropdownChange(mode, review_id_type, regex, threshold){
-    selectValue = d3.select('select').property('value')
-    unhighlight_all_nodes_and_hide_all_paths();
-    if(selectValue == '--'){
-        // show all candidates
-        show_diff_mode_type(mode, review_id_type, regex, threshold);
-    }else {
-        // show one candidate
-        highlight_node_and_paths(review_id_type, selectValue);
-    }
+    // in this case, the 'change' method can access all params pass in
+    dropdown.on('change', function(d){
+        selectValue = d3.select('select').property('value')
+        unhighlight_all_nodes_and_hide_all_paths();
+        if(selectValue == '--'){
+            // show all candidates
+            show_diff_mode_type(mode, review_id_type, regex, threshold);
+        }else {
+            // show one candidate
+            highlight_node_and_paths(review_id_type, selectValue);
+        }
+    });
 }
     
 });
