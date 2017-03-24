@@ -8,7 +8,7 @@ d3.json(filepaths[1], function(d){
 var coll_cycs = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
-var dropdownElements = ['--'];
+var dropdownElements;
 // Populate the nodes from the links
 links.forEach(function(link) {
     link.reviewer_actor_id = nodes[link.reviewer_actor_id] || (nodes[link.reviewer_actor_id] = { id: link.reviewer_actor_id });
@@ -214,7 +214,7 @@ force.start();
 // Show different graphs according to top radio button selection
 //**************************************************************
 d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {        
-    dropdownElements = ['--'];
+    dropdownElements = ['All'];
     d3.select('select').remove();
     unhighlight_all_nodes_and_hide_all_paths();
     if(this.value == 'strong'){
@@ -244,7 +244,7 @@ function show_diff_mode_type(mode, review_id_type, regex, threshold){
     d3.selectAll('.node')
     .call(function(d){
         d[0].forEach(function(n){
-            paths = d3.selectAll('[' + review_id_type + ' = ' + n.__data__.id + ']');
+            paths = d3.selectAll('[' + review_id_type + ' = "' + n.__data__.id + '"]');
             selected_paths = paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(regex); })
             if(paths[0].length > 0){
                 percentage = selected_paths.length / paths[0].length;
