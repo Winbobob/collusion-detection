@@ -8,11 +8,13 @@ d3.json(filepaths[1], function(d){
 var coll_cycs = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
+var bar_data = [];
 var dropdownElements;
 // Populate the nodes from the links
 links.forEach(function(link) {
     link.reviewer_actor_id = nodes[link.reviewer_actor_id] || (nodes[link.reviewer_actor_id] = { id: link.reviewer_actor_id });
     link.reviewee_actor_id = nodes[link.reviewee_actor_id] || (nodes[link.reviewee_actor_id] = { id: link.reviewee_actor_id });
+    bar_data.push(link.score);
 });
     
 var w = window.innerWidth;
@@ -53,11 +55,11 @@ links.forEach(function(link) {
 });
     
 // draw the arrow.
-// Different link/path types can be defined here
+// Define different link/path types
 svg.append('svg:defs').selectAll('marker').data(['end'])
     .enter().append('svg:marker')
     // This section adds in the arrows
-    .attr('id', String)
+        .attr('id', String)
         .attr('viewBox', '0 -5 10 10')
         .attr('refX', 15)
         .attr('refY', -1.5)
@@ -221,8 +223,8 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
         show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
         populate_dropdown(dropdownElements, this.value, 'reviewee_actor_id', /onezerozero/, 0.8);
     }else if(this.value == 'weak'){
-        show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
-        populate_dropdown(dropdownElements, this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.8);
+        show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.5);
+        populate_dropdown(dropdownElements, this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, 0.5);
     }else if(this.value == 'easy'){
         show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
         populate_dropdown(dropdownElements, this.value, 'reviewer_actor_id', /onezerozero/, 0.8);
@@ -235,6 +237,7 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
     }else if(this.value == 'all'){
         unhighlight_all_nodes_and_unhighlight_all_paths();
     }
+    show_bar_chart();
 });
     
 // for strong/weak submissions and easy/critical reviewers
@@ -413,11 +416,16 @@ function unhighlight_all_nodes_and_unhighlight_all_paths(){
 // dropdown
 //**************************************************************
 function populate_dropdown(dropdown_data, mode, review_id_type, regex, threshold){
-    dropdown = d3.select('#horizon-controls')
-        .append('select')
-            .attr('id', 'dropdown')
+     // add text
+     d3.select('#horizon-controls').append('text')
+        .html('<br/>Choose different items: <br/>')
+        .style('font', '15px sans-serif');
+    
+    dropdown = d3.select('#horizon-controls').append('select')
+        .attr('id', 'dropdown')
+   
     console.log(dropdown_data);
-    options = dropdown.selectAll('option').data(dropdown_data)
+    dropdown.selectAll('option').data(dropdown_data)
         .enter().append('option')
             .text(function(d, i){
                 if(mode == 'colludes'){
@@ -450,4 +458,61 @@ function populate_dropdown(dropdown_data, mode, review_id_type, regex, threshold
     });
 }
     
+//**************************************************************
+// bar chart to set threshold
+//**************************************************************
+function show_bar_chart(){
+    // sort bar_data
+    bar_data.sort(function compareNumbers(a, b){
+        return a - b;
+    })
+    var height = 100;
+    var width = 350;
+    var bar_xScale = d3.scale.ordinal()
+        .domain(d3.range(0, bar_data.length))
+        .rangeBands([0, width], 0); // rangeBands(interval, padding);
+
+    var bar_yScale = d3.scale.linear()
+        .domain([0, d3.max(links, function(d){
+            return vScale(d.score);
+        })])
+        .range([0, height]);
+
+    // add text
+    d3.select('#horizon-controls').append('text')
+        .html('<br/><br/>Slide your mouse on bar chart to choose a theshold: <br/>')
+        .style('font', '15px sans-serif');
+    
+    var barChart = d3.select('#horizon-controls').append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .append('g').selectAll('rect').data(bar_data)
+        .enter().append('rect')
+            .style('fill', 'blue')
+            .attr('width', bar_xScale.rangeBand())
+            .attr('x', function(d, i){
+                return bar_xScale(i);
+            })
+            // initial height and y position, for later transition animation.
+            .attr('height', 0)
+            .attr('y', height - 0)
+    
+    barChart.transition()
+        .attr('height', function(d){
+            return bar_yScale(d);
+        })
+        .attr('y', function(d){
+            return height - bar_yScale(d);
+        })
+        .delay(function(d, i){
+            return i * 10;
+        })
+        .duration(500)
+        .ease('elastic')
+    
+    barChart.on('mouseover', function(){
+        d3.select(this)
+            .attr('fill', 'yellow')
+    })
+}
 });
