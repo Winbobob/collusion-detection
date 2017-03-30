@@ -218,28 +218,32 @@ force.start();
 d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {  
     // reset data before each change
     dropdownElements = ['All'];
+    d3.select('#set_threshold').remove();
+    d3.select('#threshold').remove();
+    d3.select('#threshold_value').remove();
     d3.select('#choose_diff_item').remove();
     d3.select('#dropdown').remove();
     unhighlight_all_nodes_and_hide_all_paths();
    
     if(this.value == 'strong'){
         show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, threshold);
-        populate_dropdown(this.value, 'reviewee_actor_id', /onezerozero/, threshold);
         add_slider(this.value, 'reviewee_actor_id', /onezerozero/, threshold);
+        populate_dropdown(this.value, 'reviewee_actor_id', /onezerozero/, threshold);
     }else if(this.value == 'weak'){
         show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, threshold);
-        populate_dropdown(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, threshold);        
         add_slider(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, threshold);
+        populate_dropdown(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, threshold);        
     }else if(this.value == 'easy'){
         show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, threshold);
-        populate_dropdown(this.value, 'reviewer_actor_id', /onezerozero/, threshold);       
         add_slider(this.value, 'reviewer_actor_id', /onezerozero/, threshold);
+        populate_dropdown(this.value, 'reviewer_actor_id', /onezerozero/, threshold);       
     }else if(this.value == 'critical'){
         show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);
-        populate_dropdown(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);     add_slider(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);
+        add_slider(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);
+        populate_dropdown(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);
     }else if(this.value == 'colludes'){
         coll_cycs.forEach(function(coll){ show_collusion_cycle(coll); });
-        populate_dropdown(coll_cycs, this.value, undefined, undefined, undefined);
+        populate_dropdown(this.value, undefined, undefined, undefined);
     }else if(this.value == 'all'){
         unhighlight_all_nodes_and_unhighlight_all_paths();
     }
@@ -420,6 +424,22 @@ function unhighlight_all_nodes_and_unhighlight_all_paths(){
 // Slider to set threshold
 //**************************************************************
 function add_slider(mode, review_id_type, regex, threshold){
+    // add text
+    d3.select('#horizon-controls').append('text')
+        .html('<br>Set threshold: </br>')
+        .attr('id', 'set_threshold')
+        .style('font', '15px sans-serif');
+    d3.select('#horizon-controls').append('input')
+        .attr('id', 'threshold')
+        .attr('type', 'range')
+        .attr('min', '0')
+        .attr('max', '1')
+        .attr('step', '0.1')
+        .attr('value', '0.8');
+    d3.select('#horizon-controls').append('output')
+        .text(0.8)
+        .attr('id', 'threshold_value');
+
     d3.select('#threshold').on('input', function(){
         threshold = this.value;
         d3.select('#threshold_value').text(threshold);
@@ -447,7 +467,10 @@ function populate_dropdown(mode, review_id_type, regex, threshold){
     
     dropdown = d3.select('#horizon-controls').append('select')
         .attr('id', 'dropdown')
-   
+    
+   if(mode == 'colludes'){
+       dropdownElements = coll_cycs;
+   }
     console.log(dropdownElements);
     dropdown.selectAll('option').data(dropdownElements)
         .enter().append('option')
