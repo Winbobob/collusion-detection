@@ -10,6 +10,7 @@ var coll_cycs = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
 var percentage = 0.8;
+var line_color_threshold = 80;
 var dropdownElements;
 // Populate the nodes from the links
 links.forEach(function(link) {
@@ -43,7 +44,7 @@ var vScale = d3.scale.linear()
 
 // assign a type per value to encode opacity
 links.forEach(function(link) {
-	if (vScale(link.score) <= 80) {
+	if (vScale(link.score) <= line_color_threshold) {
 		link.type = 'red';
 	} else {
 		link.type = 'green';
@@ -70,6 +71,7 @@ var path = svg.append('svg:g').selectAll('path').data(links)
     .enter().append('path')
         .attr('class', function(d) { return 'link ' + d.type; })
         .attr('marker-end', 'url(#end)')
+        .attr('score', function(d){ return d.score; })
         .attr('reviewer_actor_id', function(d){ return d.reviewer_actor_id.id })
         .attr('reviewee_actor_id', function(d){ return d.reviewee_actor_id.id });
 
@@ -204,6 +206,8 @@ node.on('click', function(d) {
     }
 })
 
+add_line_color_threshold_slider();
+
 force.start();
 
     
@@ -217,6 +221,9 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
     d3.select('#set_percentage').remove();
     d3.select('#percentage_slider').remove();
     d3.select('#percentage_value').remove();
+    d3.select('#set_line_color_threshold').remove();
+    d3.select('#color_threshold_slider').remove();
+    d3.select('#color_threshold_value').remove();
     d3.select('#choose_diff_item').remove();
     d3.select('#dropdown').remove();
     unhighlight_all_nodes_and_hide_all_paths();
@@ -233,6 +240,7 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
         coll_cycs.forEach(function(coll){ show_collusion_cycle(coll); });
         populate_dropdown(this.value, undefined, undefined, undefined);
     }else if(this.value == 'all'){
+        add_line_color_threshold_slider();
         unhighlight_all_nodes_and_unhighlight_all_paths();
     }
 });
@@ -266,7 +274,7 @@ function show_diff_mode_type(mode, review_id_type, regex){
             }
         });
     });
-}
+ }
     
 // show one candidate
 function highlight_node_and_paths(review_id_type, id){
@@ -422,10 +430,10 @@ function unhighlight_all_nodes_and_unhighlight_all_paths(){
 //**************************************************************
 // Slider to set percentage (the percentage of green lines out of all received/submitted lines)
 //**************************************************************
-function add_percentage_slider(mode, review_id_type, regex, description){
+function add_percentage_slider(mode, review_id_type, regex){
     // add text
     d3.select('#horizon-controls').append('text')
-        .html('<br>Set percentage: </br>' + description )
+        .html('<br/>Set percentage of ' + regex.toString().replace(/\//ig, '') + ' lines out of all lines <br/>')
         .attr('id', 'set_percentage')
         .style('font', '15px sans-serif');
     d3.select('#horizon-controls').append('input')
@@ -434,9 +442,9 @@ function add_percentage_slider(mode, review_id_type, regex, description){
         .attr('min', '0')
         .attr('max', '1')
         .attr('step', '0.1')
-        .attr('value', '0.8');
+        .attr('value', percentage);
     d3.select('#horizon-controls').append('output')
-        .text(0.8)
+        .text(percentage)
         .attr('id', 'percentage_value');
 
     d3.select('#percentage_slider').on('input', function(){
@@ -451,6 +459,56 @@ function add_percentage_slider(mode, review_id_type, regex, description){
         show_diff_mode_type(mode, review_id_type, regex, percentage);
         populate_dropdown(mode, review_id_type, regex, percentage);
         console.log('percentage: ' + percentage);
+    })
+}
+    
+//**************************************************************
+// Slider to set line color threshold (a score represents as a green lines or red line)
+//**************************************************************
+function add_line_color_threshold_slider(){
+    // add text
+    d3.select('#horizon-controls').append('text')
+        .html('<br/>Set line color threshold: <br/>')
+        .attr('id', 'set_line_color_threshold')
+        .style('font', '15px sans-serif');
+    d3.select('#horizon-controls').append('input')
+        .attr('id', 'color_threshold_slider')
+        .attr('type', 'range')
+        .attr('min', '0')
+        .attr('max', '100')
+        .attr('step', '1')
+        .attr('value', line_color_threshold);
+    d3.select('#horizon-controls').append('output')
+        .html('<br/>>= ' + line_color_threshold + ' => green; < ' + line_color_threshold + ' => red')
+        .attr('id', 'color_threshold_value');
+
+    d3.select('#color_threshold_slider').on('input', function(){
+        line_color_threshold = this.value;
+        d3.select('#color_threshold_value').html('<br/>>= ' + line_color_threshold + ' => green; < ' + line_color_threshold + ' => red'); 
+        // change classes of all paths
+        d3.selectAll('path').filter(function(path){
+            p = d3.select(this);        
+            className = p.attr('class');
+            score = parseInt(p.attr('score'));
+            if(classSection.indexOf(className) != -1){
+                d3.select(this).classed(className, false)
+                if(score >= line_color_threshold){
+                    d3.select(this).classed('link green', true);
+                } else {
+                    d3.select(this).classed('link red', true);
+                }
+            }
+        })
+
+//        // reset data before each change
+//        dropdownElements = ['All'];
+//        d3.select('#choose_diff_item').remove();
+//        d3.select('#dropdown').remove();
+//        unhighlight_all_nodes_and_hide_all_paths();
+//        // update node, link and dropdown
+//        show_diff_mode_type(mode, review_id_type, regex, percentage);
+//        populate_dropdown(mode, review_id_type, regex, percentage);
+        console.log('color threshold value: ' + line_color_threshold);
     })
 }
 
