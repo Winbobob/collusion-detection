@@ -4,62 +4,32 @@ path.link {
   stroke-width: 1.0px;
 }
 
-path.link.twofive {
+path.link.red {
   opacity: 0.75;
   stroke: #A52A2A;
 }
 
-path.link.fivezero {
-  opacity: 0.75;
-  stroke: #A52A2A;
-}
-
-path.link.sevenfive {
-  opacity: 0.75;
-  stroke: #A52A2A;
-}
-
-path.link.onezerozero {
+path.link.green {
   opacity: 0.75;
   stroke: #8FBC8F;
 }
 
-path.link.twofive.highlight {
+path.link.red.highlight {
   opacity: 0.75;
   stroke-width: 2.5px;
 }
 
-path.link.fivezero.highlight {
-  opacity: 0.75;
-  stroke-width: 2.5px;
-}
-
-path.link.sevenfive.highlight {
-  opacity: 0.75;
-  stroke-width: 2.5px;
-}
-
-path.link.onezerozero.highlight {
+path.link.green.highlight {
   opacity: 0.75;
   stroke-width: 2.5px;
 }
     
-path.link.twofive.hidden {
+path.link.red.hidden {
   opacity: 0.05;
   stroke-width: 0.5px;
 }
 
-path.link.fivezero.hidden {
-  opacity: 0.05;
-  stroke-width: 0.5px;
-}
-
-path.link.sevenfive.hidden {
-  opacity: 0.05;
-  stroke-width: 0.5px;
-}
-
-path.link.onezerozero.hidden {
+path.link.green.hidden {
   opacity: 0.05;
   stroke-width: 0.5px;
 }

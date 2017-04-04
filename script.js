@@ -1,4 +1,4 @@
-var classSection = ['link twofive', 'link fivezero', 'link sevenfive', 'link onezerozero'];
+var classSection = ['link red', 'link green'];
 var filepaths = ['collusion_detection_sample_724.txt', 
                  'collusion_detection_sample_733_wikib.txt', 
                  'collusion_detection_sample_749_final.txt',
@@ -9,7 +9,7 @@ d3.json(filepaths[1], function(d){
 var coll_cycs = d.colluder_sycles;
 var links = d.crituques;
 var nodes = {};
-var threshold = 0.8;
+var percentage = 0.8;
 var dropdownElements;
 // Populate the nodes from the links
 links.forEach(function(link) {
@@ -43,14 +43,10 @@ var vScale = d3.scale.linear()
 
 // assign a type per value to encode opacity
 links.forEach(function(link) {
-	if (vScale(link.score) <= 25) {
-		link.type = 'twofive';
-	} else if (vScale(link.score) <= 80 && vScale(link.score) > 25) {
-		link.type = 'fivezero';
-	} else if (vScale(link.score) <= 90 && vScale(link.score) > 80) {
-		link.type = 'sevenfive';
-	} else if (vScale(link.score) <= 100 && vScale(link.score) > 90) {
-		link.type = 'onezerozero';
+	if (vScale(link.score) <= 80) {
+		link.type = 'red';
+	} else {
+		link.type = 'green';
 	}
 });
     
@@ -218,29 +214,21 @@ force.start();
 d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {  
     // reset data before each change
     dropdownElements = ['All'];
-    d3.select('#set_threshold').remove();
-    d3.select('#threshold').remove();
-    d3.select('#threshold_value').remove();
+    d3.select('#set_percentage').remove();
+    d3.select('#percentage_slider').remove();
+    d3.select('#percentage_value').remove();
     d3.select('#choose_diff_item').remove();
     d3.select('#dropdown').remove();
     unhighlight_all_nodes_and_hide_all_paths();
    
     if(this.value == 'strong'){
-        show_diff_mode_type(this.value, 'reviewee_actor_id', /onezerozero/, threshold);
-        add_slider(this.value, 'reviewee_actor_id', /onezerozero/, threshold);
-        populate_dropdown(this.value, 'reviewee_actor_id', /onezerozero/, threshold);
+        change_horizon_controls(this.value, 'reviewee_actor_id', /green/);
     }else if(this.value == 'weak'){
-        show_diff_mode_type(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, threshold);
-        add_slider(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, threshold);
-        populate_dropdown(this.value, 'reviewee_actor_id', /(fivezero|twofive|sevenfive)/, threshold);        
+        change_horizon_controls(this.value, 'reviewee_actor_id', /red/);
     }else if(this.value == 'easy'){
-        show_diff_mode_type(this.value, 'reviewer_actor_id', /onezerozero/, threshold);
-        add_slider(this.value, 'reviewer_actor_id', /onezerozero/, threshold);
-        populate_dropdown(this.value, 'reviewer_actor_id', /onezerozero/, threshold);       
+        change_horizon_controls(this.value, 'reviewer_actor_id', /green/);
     }else if(this.value == 'critical'){
-        show_diff_mode_type(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);
-        add_slider(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);
-        populate_dropdown(this.value, 'reviewer_actor_id', /(fivezero|twofive)/, threshold);
+        change_horizon_controls(this.value, 'reviewer_actor_id', /red/);
     }else if(this.value == 'colludes'){
         coll_cycs.forEach(function(coll){ show_collusion_cycle(coll); });
         populate_dropdown(this.value, undefined, undefined, undefined);
@@ -248,10 +236,18 @@ d3.selectAll('#horizon-controls input[name=mode]').on('change', function() {
         unhighlight_all_nodes_and_unhighlight_all_paths();
     }
 });
-    
+
+function change_horizon_controls(mode, review_id_type, regex){
+    show_diff_mode_type(mode, review_id_type, regex);
+    add_percentage_slider(mode, review_id_type, regex);
+    populate_dropdown(mode, review_id_type, regex);
+}
+
+//**************************************************************
 // for strong/weak submissions and easy/critical reviewers
-// display all candidates, call function 'highlight_node_and_paths' and 'populate_dropdown'
-function show_diff_mode_type(mode, review_id_type, regex, threshold){
+//**************************************************************
+// show all candidates, call function 'highlight_node_and_paths'
+function show_diff_mode_type(mode, review_id_type, regex){
     console.log('=====' + mode + ' Submissions=====');
     iterator = 1;
     d3.selectAll('.node')
@@ -260,9 +256,9 @@ function show_diff_mode_type(mode, review_id_type, regex, threshold){
             paths = d3.selectAll('[' + review_id_type + ' = "' + n.__data__.id + '"]');
             selected_paths = paths[0].filter(function(d){ return d.attributes[0].nodeValue.match(regex); })
             if(paths[0].length > 0){
-                percentage = selected_paths.length / paths[0].length;
-                if(percentage >= threshold){
-                    console.log(n.__data__.id + '  Percentage: ' + percentage);
+                ratio = selected_paths.length / paths[0].length;
+                if(ratio >= percentage){
+                    console.log(n.__data__.id + '  Percentage: ' + ratio);
                     dropdownElements[iterator] = n.__data__.id;
                     iterator = iterator + 1;
                     highlight_node_and_paths(review_id_type, n.__data__.id);
@@ -272,8 +268,7 @@ function show_diff_mode_type(mode, review_id_type, regex, threshold){
     });
 }
     
-// for strong/weak submissions and easy/critical reviewers
-// display certain candidate
+// show one candidate
 function highlight_node_and_paths(review_id_type, id){
     // highlight related nodes (text and circle)
     d3.selectAll('.node')
@@ -311,7 +306,9 @@ function highlight_node_and_paths(review_id_type, id){
     })
 }
 
+//**************************************************************
 // for collusion detection graph
+//**************************************************************
 // display one collusion cycle, call function 'highlight_collude_nodes_and_paths'
 function show_collusion_cycle(coll_cyc){
     c = coll_cyc.colluders
@@ -322,8 +319,7 @@ function show_collusion_cycle(coll_cyc){
         }
     }
 }
-    
-// for collusion detection graph
+
 function highlight_collude_nodes_and_paths(reviewer_id, reviewee_id){
     // highlight related nodes (text and circle)
     d3.selectAll('.node')
@@ -361,7 +357,10 @@ function highlight_collude_nodes_and_paths(reviewer_id, reviewee_id){
         }
     })
 }
-    
+  
+//**************************************************************
+// for unhighlight nodes or paths
+//**************************************************************
 function unhighlight_all_nodes_and_hide_all_paths(){
     // unhighlight all nodes (text and circle)
     d3.selectAll('.node')
@@ -421,16 +420,16 @@ function unhighlight_all_nodes_and_unhighlight_all_paths(){
 }
  
 //**************************************************************
-// Slider to set threshold
+// Slider to set percentage (the percentage of green lines out of all received/submitted lines)
 //**************************************************************
-function add_slider(mode, review_id_type, regex, threshold){
+function add_percentage_slider(mode, review_id_type, regex, description){
     // add text
     d3.select('#horizon-controls').append('text')
-        .html('<br>Set threshold: </br>')
-        .attr('id', 'set_threshold')
+        .html('<br>Set percentage: </br>' + description )
+        .attr('id', 'set_percentage')
         .style('font', '15px sans-serif');
     d3.select('#horizon-controls').append('input')
-        .attr('id', 'threshold')
+        .attr('id', 'percentage_slider')
         .attr('type', 'range')
         .attr('min', '0')
         .attr('max', '1')
@@ -438,27 +437,27 @@ function add_slider(mode, review_id_type, regex, threshold){
         .attr('value', '0.8');
     d3.select('#horizon-controls').append('output')
         .text(0.8)
-        .attr('id', 'threshold_value');
+        .attr('id', 'percentage_value');
 
-    d3.select('#threshold').on('input', function(){
-        threshold = this.value;
-        d3.select('#threshold_value').text(threshold);
+    d3.select('#percentage_slider').on('input', function(){
+        percentage = this.value;
+        d3.select('#percentage_value').text(percentage);
         // reset data before each change
         dropdownElements = ['All'];
         d3.select('#choose_diff_item').remove();
         d3.select('#dropdown').remove();
         unhighlight_all_nodes_and_hide_all_paths();
         // update node, link and dropdown
-        show_diff_mode_type(mode, review_id_type, regex, threshold);
-        populate_dropdown(mode, review_id_type, regex, threshold);
-        console.log('threshold: ' + threshold);
+        show_diff_mode_type(mode, review_id_type, regex, percentage);
+        populate_dropdown(mode, review_id_type, regex, percentage);
+        console.log('percentage: ' + percentage);
     })
 }
 
 //**************************************************************
 // dropdown
 //**************************************************************
-function populate_dropdown(mode, review_id_type, regex, threshold){
+function populate_dropdown(mode, review_id_type, regex){
      // add text
      d3.select('#horizon-controls').append('text')
         .html('<br/>Choose different items: <br/>')
@@ -492,7 +491,7 @@ function populate_dropdown(mode, review_id_type, regex, threshold){
             if(mode == 'colludes'){
                 coll_cycs.forEach(function(coll){ show_collusion_cycle(dropdownElements); });
             }else{ // show all candidates
-                show_diff_mode_type(mode, review_id_type, regex, threshold);
+                show_diff_mode_type(mode, review_id_type, regex, percentage);
             }
         }else {
             if(mode == 'colludes'){
