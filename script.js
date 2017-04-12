@@ -1,12 +1,13 @@
 var classSection = ['link red', 'link green'];
-var filepaths = ['collusion_detection_sample_724.txt', 
+var filepaths = ['collusion_detection_sample_724.txt',
+                 '733-test.txt',
                  'collusion_detection_sample_733_wikib.txt', 
                  'collusion_detection_sample_749_final.txt',
                  'collusion_detection_sample_736_OSS.txt',
                  'collusion_detection_sample_733_wikib_scrubbed.txt'];
 
 d3.json(filepaths[1], function(d){
-var coll_cycs = d.colluder_sycles;
+var coll_cycs = d.colluder_cycles;
 var links = d.crituques;
 var nodes = {};
 var percentage = 0.8;
