@@ -1,2 +1,7 @@
 /bin/
 *.json
+/target/
+.settings/
+.classpath
+.project
+*.jar
