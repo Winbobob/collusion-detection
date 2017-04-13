@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JGraph {
 	
-	// define constant
+	// constant definition
+	public static final int CIRCLE_SIZE = 4; // ¦Â
+	public static final double PERCENTAGE_ADJUSTMENT = 0.05; //¦Å1, ¦Å2
 	
 	
     private JGraph()
@@ -37,14 +40,18 @@ public class JGraph {
     			String filePath = ".\\" + dirName + "\\" + files[i].getName();
     	    	// note undirected edges are printed as: {<v1>,<v2>}
     	        // note directed edges are printed as: (<v1>,<v2>)
-    	        DirectedGraph<String, DefaultEdge> directedGraph = createStringGraph(filePath, 90); // <-------------90?
+    			Map<String, Map<String, Double>> reviewMatirx = new HashMap<String, Map<String, Double>>();
+    	        DirectedGraph<String, DefaultEdge> directedGraph = createStringGraph(reviewMatirx, filePath);
     	        System.out.println(directedGraph.toString());
     	        // create a graph based on URL objects
     	        // DirectedGraph<URL, DefaultEdge> hrefGraph = createHrefGraph();
     	        // System.out.println(hrefGraph.toString());
+    	        /**
+    	         * Colluion condition 1: cycle
+    	         */
     	        JohnsonSimpleCycles<String, DefaultEdge> cyclesFinder = new JohnsonSimpleCycles<String, DefaultEdge>(directedGraph) ;
     	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
-    	        UpdateJSONFiles(cycles, filePath);
+    	        UpdateJSONFiles(reviewMatirx, cycles, filePath);
     	        System.out.println("=====" + Integer.toString(i) + "====================");
     		}
     	}
@@ -120,11 +127,10 @@ public class JGraph {
      *
      * @return a graph based on String objects.
      */
-    private static DirectedGraph<String, DefaultEdge> createStringGraph(String filePath, int scoreThreshold)
+    private static DirectedGraph<String, DefaultEdge> createStringGraph(Map<String, Map<String, Double>> reviewMatirx, 
+    																	String filePath)
     {
-
     	DirectedGraph<String, DefaultEdge> g = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-        
         try {
 			File file = new File(filePath);
 			FileInputStream fis = new FileInputStream(file);
@@ -135,6 +141,7 @@ public class JGraph {
 			// convert the byte array into a string
 			String str = new String(data, "UTF-8");
 			JSONObject obj = new JSONObject(str);
+			double scoreThreshold = obj.getDouble("80 quantile score");
 			// get the critiques as an Array
 			JSONArray critiques = obj.getJSONArray("critiques");
 			for (int i = 0; i < critiques.length(); i++)
@@ -144,8 +151,12 @@ public class JGraph {
 			    // Add vertex
 			    if(!g.containsVertex(reviewerActorId)) g.addVertex(reviewerActorId);
 			    if(!g.containsVertex(revieweeActorId)) g.addVertex(revieweeActorId);
-			    double score = critiques.getJSONObject(i).getDouble("score");
-			    if(score > 80.0 && reviewerActorId.compareTo(revieweeActorId) != 0 )
+			    double score = critiques.getJSONObject(i).getDouble("score");   
+			    GenerateReviewMatrix(reviewMatirx, reviewerActorId, revieweeActorId, score);
+			    /**
+			     * Colluion condition 2: All grades in cycle >= 80 quantile score
+			     */
+			    if(score >= scoreThreshold && reviewerActorId.compareTo(revieweeActorId) != 0 )
 			    {
 			    	g.addEdge(reviewerActorId, revieweeActorId);
 			    }
@@ -168,43 +179,60 @@ public class JGraph {
      * @param cycles
      * @param filePath
      */
-    private static void UpdateJSONFiles(List<List<String>> cycles, String filePath){
-    	// generate collude_cycles info
-    	Map<String, String> colluderMap = new HashMap<String, String>();
-    	JSONArray colluders = new JSONArray();
-    	Map<String, JSONArray> colluderCycleMap = new HashMap<String, JSONArray>();
-    	JSONArray colluderCycles = new JSONArray();
-    	
-    	for (int i = 0; i < cycles.size(); i++){
-    		//colluderCycles = new JSONArray();
-        	List<String> currentCycle = cycles.get(i);
-        	if (currentCycle.size() > 4) continue; // <------------------- 4??
-        	colluders = new JSONArray();
-        	for (int j = 0; j < currentCycle.size(); j++){
-        		System.out.print(currentCycle.get(j) + " ");
-        		colluderMap.put("id", currentCycle.get(j));
-        		colluders.put(j, colluderMap);
-        	}
-        	System.out.println();
-        	if(colluders.length() > 0) {
-        		colluderCycleMap.put("colluders", colluders);
-        		colluderCycles.put(colluderCycleMap);
-        	}
-        }
-
-    	// read file and append collude_cycles info
+    private static void UpdateJSONFiles(Map<String, Map<String, Double>> reviewMatirx, 
+    									List<List<String>> cycles, 
+    									String filePath){
     	JSONObject obj;
     	try {
+    		// read file
 			File file = new File(filePath);
 			FileInputStream fis = new FileInputStream(file);
-			// read the file as a byte array
 			byte[] data = new byte[(int) file.length()];
 			fis.read(data);
 			fis.close();
-			// convert the byte array into a string
 			String str = new String(data, "UTF-8");
 			obj = new JSONObject(str);
-			// get the critiques as an Array
+			double sumScore = obj.getDouble("sum_score_in_whole_task");
+			// generate collude_cycles info
+	    	List<String> colluderList = new ArrayList<String>();
+	    	Map<String, String> colluderMap = new HashMap<String, String>();
+	    	JSONArray colluders = new JSONArray();
+	    	Map<String, JSONArray> colluderCycleMap = new HashMap<String, JSONArray>();
+	    	JSONArray colluderCycles = new JSONArray();
+	    	for (int i = 0; i < cycles.size(); i++){
+	        	List<String> currentCycle = cycles.get(i);
+	        	/**
+	        	 * Colluion condition 3: Circle size <= ¦Â 
+	        	 */
+	        	if (currentCycle.size() > CIRCLE_SIZE) continue;
+	        	colluders = new JSONArray();
+	        	for (int j = 0; j < currentCycle.size(); j++){
+	        		colluderList.add(currentCycle.get(j));
+	        		System.out.print(currentCycle.get(j) + " ");
+	        		colluderMap.put("id", currentCycle.get(j));
+	        		colluders.put(j, colluderMap);
+	        	}
+	        	System.out.println();
+	        	/**
+	        	 * Colluion condition 4: avg(review scores in cycle)/avg(review scores out cycle) >= 1 + ¦Å1
+	        	 */
+	        	double sumScoreInCycle = 0.0;
+	        	for(int m = 0; m < colluderList.size(); m++){
+	        		Map<String, Double> tempMap = reviewMatirx.get(colluderList.get(m));
+	        		for(int n = 0; n < colluderList.size(); n++){
+	        			if(tempMap.containsKey(colluderList.get(n))){
+	        				sumScoreInCycle += tempMap.get(colluderList.get(n));
+	        			}
+	        		}
+	        	}
+	        	boolean isCollude = false;
+	        	if(sumScoreInCycle / (sumScore - sumScoreInCycle) >= 1 + PERCENTAGE_ADJUSTMENT) isCollude = true;
+	        	if(isCollude && colluders.length() > 0) {
+	        		colluderCycleMap.put("colluders", colluders);
+	        		colluderCycles.put(colluderCycleMap);
+	        	}
+	        }
+	    	// append collude_cycles info
 			obj.put("colluder_cycles", colluderCycles);
 		} catch (UnsupportedEncodingException e) {
 			System.out.println( "UnsupportedEncodingException!");
@@ -235,6 +263,22 @@ public class JGraph {
 		}
     }
     
+    /**
+     * Generate review matrix in order to calculate average and inflation rate.
+     * @param reviewMatirx
+     * @param reviewer
+     * @param reviewee
+     * @param score
+     */
+    private static void GenerateReviewMatrix(Map<String, Map<String, Double>> reviewMatirx, String reviewer, String reviewee, double score){
+    	Map<String, Double> temp;
+    	if(!reviewMatirx.containsKey(reviewer))
+    		temp = new HashMap<String, Double>();
+    	else
+    		temp = reviewMatirx.get(reviewer);
+    	temp.put(reviewee, score);
+		reviewMatirx.put(reviewer, temp);
+    }
 
     
 }

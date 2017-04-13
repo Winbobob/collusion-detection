@@ -1,6 +1,5 @@
 var classSection = ['link red', 'link green'];
 var filepaths = ['collusion_detection_sample_724.txt',
-                 '733-test.txt',
                  'collusion_detection_sample_733_wikib.txt', 
                  'collusion_detection_sample_749_final.txt',
                  'collusion_detection_sample_736_OSS.txt',
@@ -8,7 +7,7 @@ var filepaths = ['collusion_detection_sample_724.txt',
 
 d3.json(filepaths[1], function(d){
 var coll_cycs = d.colluder_cycles;
-var links = d.crituques;
+var links = d.critiques;
 var nodes = {};
 var percentage = 0.8;
 var line_color_threshold = 80;
