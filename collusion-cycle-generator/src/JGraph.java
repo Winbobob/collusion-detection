@@ -1,11 +1,14 @@
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,9 +16,10 @@ import java.util.Map;
 import org.jgrapht.*;
 import org.jgrapht.alg.cycle.JohnsonSimpleCycles;
 import org.jgrapht.graph.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -32,12 +36,13 @@ public class JGraph {
 
     public static void main(String[] args)
     {
-    	String dirName = "EZ-data-warehouse-output";
+    	String dirName = "CV-data-warehouse-output";
     	File dir = new File(dirName);
     	File[] files = dir.listFiles();
     	for(int i = 0; i < files.length; i++){
     		if(files[i].isFile()){
     			String filePath = ".\\" + dirName + "\\" + files[i].getName();
+    			System.out.println("=====" + Integer.toString(i) + ": " + filePath + "====================");
     	    	// note undirected edges are printed as: {<v1>,<v2>}
     	        // note directed edges are printed as: (<v1>,<v2>)
     			Map<String, Map<String, Double>> reviewMatirx = new HashMap<String, Map<String, Double>>();
@@ -51,8 +56,8 @@ public class JGraph {
     	         */
     	        JohnsonSimpleCycles<String, DefaultEdge> cyclesFinder = new JohnsonSimpleCycles<String, DefaultEdge>(directedGraph) ;
     	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
-    	        UpdateJSONFiles(reviewMatirx, cycles, filePath);
-    	        System.out.println("=====" + Integer.toString(i) + "====================");
+    	        UpdateJSONFiles(reviewMatirx, cycles, dirName, filePath);
+    	        
     		}
     	}
     	
@@ -131,27 +136,21 @@ public class JGraph {
     																	String filePath)
     {
     	DirectedGraph<String, DefaultEdge> g = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
-        try {
-			File file = new File(filePath);
-			FileInputStream fis = new FileInputStream(file);
-			// read the file as a byte array
-			byte[] data = new byte[(int) file.length()];
-			fis.read(data);
-			fis.close();
-			// convert the byte array into a string
-			String str = new String(data, "UTF-8");
-			JSONObject obj = new JSONObject(str);
-			double scoreThreshold = obj.getDouble("80 quantile score");
+        JSONParser parser = new JSONParser();
+    	try {
+			Object fileContent =  parser.parse(new FileReader(filePath));
+			JSONObject obj = (JSONObject) fileContent;
+			double scoreThreshold = (double) obj.get("80 quantile score");
 			// get the critiques as an Array
-			JSONArray critiques = obj.getJSONArray("critiques");
-			for (int i = 0; i < critiques.length(); i++)
+			JSONArray critiques = (JSONArray) obj.get("critiques");
+			for (int i = 0; i < critiques.size(); i++)
 			{
-			    String reviewerActorId = critiques.getJSONObject(i).getString("reviewer_actor_id");
-			    String revieweeActorId = critiques.getJSONObject(i).getString("reviewee_actor_id");
+			    String reviewerActorId = (String)((JSONObject) critiques.get(i)).get("reviewer_actor_id");
+			    String revieweeActorId = (String)((JSONObject) critiques.get(i)).get("reviewee_actor_id");
 			    // Add vertex
 			    if(!g.containsVertex(reviewerActorId)) g.addVertex(reviewerActorId);
 			    if(!g.containsVertex(revieweeActorId)) g.addVertex(revieweeActorId);
-			    double score = critiques.getJSONObject(i).getDouble("score");   
+			    double score = (double)((JSONObject) critiques.get(i)).get("score");   
 			    GenerateReviewMatrix(reviewMatirx, reviewerActorId, revieweeActorId, score);
 			    /**
 			     * Colluion condition 2: All grades in cycle >= 80 quantile score
@@ -171,33 +170,32 @@ public class JGraph {
 		} catch (IOException e) {
 			System.out.println( "FileNotFoundException!");
 			return null;
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return null;
 		}
     }
     
     /**
      * reference: http://crunchify.com/how-to-write-json-object-to-file-in-java/
+     * reference: https://www.mkyong.com/java/json-simple-example-read-and-write-json/
      * @param cycles
      * @param filePath
      */
     private static void UpdateJSONFiles(Map<String, Map<String, Double>> reviewMatirx, 
     									List<List<String>> cycles, 
+    									String dirName,
     									String filePath){
-    	JSONObject obj;
+    	JSONParser parser = new JSONParser();
+    	JSONObject obj = null;
     	try {
     		// read file
-			File file = new File(filePath);
-			FileInputStream fis = new FileInputStream(file);
-			byte[] data = new byte[(int) file.length()];
-			fis.read(data);
-			fis.close();
-			String str = new String(data, "UTF-8");
-			obj = new JSONObject(str);
-			double sumScore = obj.getDouble("sum_score_in_whole_task");
+    		Object fileContent =  parser.parse(new FileReader(filePath));
+			obj = (JSONObject) fileContent;
+			double sumScore = (double) obj.get("sum_score_in_whole_task");
 			// generate collude_cycles info
 	    	List<String> colluderList = new ArrayList<String>();
-	    	Map<String, String> colluderMap = new HashMap<String, String>();
 	    	JSONArray colluders = new JSONArray();
-	    	Map<String, JSONArray> colluderCycleMap = new HashMap<String, JSONArray>();
 	    	JSONArray colluderCycles = new JSONArray();
 	    	for (int i = 0; i < cycles.size(); i++){
 	        	List<String> currentCycle = cycles.get(i);
@@ -209,8 +207,7 @@ public class JGraph {
 	        	for (int j = 0; j < currentCycle.size(); j++){
 	        		colluderList.add(currentCycle.get(j));
 	        		System.out.print(currentCycle.get(j) + " ");
-	        		colluderMap.put("id", currentCycle.get(j));
-	        		colluders.put(j, colluderMap);
+	        		colluders.add(currentCycle.get(j));
 	        	}
 	        	System.out.println();
 	        	/**
@@ -227,9 +224,8 @@ public class JGraph {
 	        	}
 	        	boolean isCollude = false;
 	        	if(sumScoreInCycle / (sumScore - sumScoreInCycle) >= 1 + PERCENTAGE_ADJUSTMENT) isCollude = true;
-	        	if(isCollude && colluders.length() > 0) {
-	        		colluderCycleMap.put("colluders", colluders);
-	        		colluderCycles.put(colluderCycleMap);
+	        	if(isCollude && colluders.size() > 0) {
+	        		colluderCycles.add(colluders);
 	        	}
 	        }
 	    	// append collude_cycles info
@@ -243,9 +239,11 @@ public class JGraph {
 		} catch (IOException e) {
 			System.out.println( "FileNotFoundException!");
 			return;
+		} catch (ParseException e) {
+			e.printStackTrace();
 		}
     	// write to json file
-    	try (FileWriter file = new FileWriter(filePath)) {
+    	try (FileWriter file = new FileWriter(filePath.replaceAll(dirName, dirName + "-with-collusion-cycle"))) {
     		// beautify json
     		ObjectMapper mapper = new ObjectMapper();
     		Object json = mapper.readValue(obj.toString(), Object.class);
