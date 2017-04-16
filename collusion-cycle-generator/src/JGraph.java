@@ -5,10 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +33,7 @@ public class JGraph {
 
     public static void main(String[] args)
     {
-    	String dirName = "CV-data-warehouse-output";
+    	String dirName = "EZ-data-warehouse-output";
     	File dir = new File(dirName);
     	File[] files = dir.listFiles();
     	for(int i = 0; i < files.length; i++){
@@ -46,7 +43,8 @@ public class JGraph {
     	    	// note undirected edges are printed as: {<v1>,<v2>}
     	        // note directed edges are printed as: (<v1>,<v2>)
     			Map<String, Map<String, Double>> reviewMatirx = new HashMap<String, Map<String, Double>>();
-    	        DirectedGraph<String, DefaultEdge> directedGraph = createStringGraph(reviewMatirx, filePath);
+    			List<String> pervasiveList = new ArrayList<String>();
+    	        DirectedGraph<String, DefaultEdge> directedGraph = createStringGraph(reviewMatirx, pervasiveList, files[i].getName(), dirName, filePath);
     	        System.out.println(directedGraph.toString());
     	        // create a graph based on URL objects
     	        // DirectedGraph<URL, DefaultEdge> hrefGraph = createHrefGraph();
@@ -54,9 +52,9 @@ public class JGraph {
     	        /**
     	         * Colluion condition 1: cycle
     	         */
-    	        JohnsonSimpleCycles<String, DefaultEdge> cyclesFinder = new JohnsonSimpleCycles<String, DefaultEdge>(directedGraph) ;
-    	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
-    	        UpdateJSONFiles(reviewMatirx, cycles, dirName, filePath);
+//    	        JohnsonSimpleCycles<String, DefaultEdge> cyclesFinder = new JohnsonSimpleCycles<String, DefaultEdge>(directedGraph) ;
+//    	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
+//    	        UpdateJSONFiles(reviewMatirx, cycles, dirName, filePath);
     	        
     		}
     	}
@@ -133,6 +131,9 @@ public class JGraph {
      * @return a graph based on String objects.
      */
     private static DirectedGraph<String, DefaultEdge> createStringGraph(Map<String, Map<String, Double>> reviewMatirx, 
+    																	List<String> pervasiveList,
+    																	String taskId,
+    																	String dirName,
     																	String filePath)
     {
     	DirectedGraph<String, DefaultEdge> g = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
@@ -152,6 +153,7 @@ public class JGraph {
 			    if(!g.containsVertex(revieweeActorId)) g.addVertex(revieweeActorId);
 			    double score = (double)((JSONObject) critiques.get(i)).get("score");   
 			    GenerateReviewMatrix(reviewMatirx, reviewerActorId, revieweeActorId, score);
+			    calcPervasive(reviewMatirx, pervasiveList, taskId, dirName, filePath, scoreThreshold);
 			    /**
 			     * Colluion condition 2: All grades in cycle >= 80 quantile score
 			     */
@@ -263,20 +265,73 @@ public class JGraph {
     
     /**
      * Generate review matrix in order to calculate average and inflation rate.
-     * @param reviewMatirx
+     * @param reviewMatrix
      * @param reviewer
      * @param reviewee
      * @param score
      */
-    private static void GenerateReviewMatrix(Map<String, Map<String, Double>> reviewMatirx, String reviewer, String reviewee, double score){
+    private static void GenerateReviewMatrix(Map<String, Map<String, Double>> reviewMatrix, String reviewer, String reviewee, double score){
     	Map<String, Double> temp;
-    	if(!reviewMatirx.containsKey(reviewer))
+    	if(!reviewMatrix.containsKey(reviewer))
     		temp = new HashMap<String, Double>();
     	else
-    		temp = reviewMatirx.get(reviewer);
+    		temp = reviewMatrix.get(reviewer);
     	temp.put(reviewee, score);
-		reviewMatirx.put(reviewer, temp);
+		reviewMatrix.put(reviewer, temp);
     }
 
-    
+    /**
+     * Populate pervasive list
+     * @param reviewMatirx
+     * @param pervasiveList
+     * @param taskId
+     * @param scoreThreshold
+     */
+    private static void calcPervasive(Map<String, Map<String, Double>> reviewMatirx, 
+    								  List<String> pervasiveList, 
+    								  String taskId,
+    								  String dirName,
+    								  String filePath,
+    								  double scoreThreshold){
+    	pervasiveList = new ArrayList<String>();
+    	int reviewCount = 0;
+    	for(String reviewer : reviewMatirx.keySet()){
+    		reviewCount += reviewMatirx.get(reviewer).size();
+    	}
+    	double avgReviewCount = reviewCount / reviewMatirx.size();
+    	for(String reviewer : reviewMatirx.keySet()){
+    		int numOfScoreBiggerThanThreshold = 0;
+    		/**
+    		 * Pervasive condition 1: # of reviews for certain reviewer >= avg # of reviews 
+    		 */
+    		if(reviewMatirx.get(reviewer).size() >= avgReviewCount){
+    			for(String reviewee: reviewMatirx.get(reviewer).keySet()){
+    				if(reviewMatirx.get(reviewer).get(reviewee) >= scoreThreshold) numOfScoreBiggerThanThreshold++;
+    			}
+    		}
+    		/**
+    		 * Pervasive condition 2: (review score >= 80 quantile score)/total review done >= 1 - ¦Å2
+    		 */
+    		if(numOfScoreBiggerThanThreshold * 1.0 / reviewMatirx.get(reviewer).size() >= 1 - PERCENTAGE_ADJUSTMENT){
+    			pervasiveList.add(reviewer);
+    		}
+    	}
+    	pervasiveList.add(Double.toString(pervasiveList.size() * 1.0 / reviewMatirx.size()));
+    	
+    	// write to json file
+    	try (FileWriter file = new FileWriter(filePath.replaceAll(dirName, "EZ-data-warehouse-output-pervasive-data"))) {
+    		// beautify json
+			file.write(pervasiveList.toString());
+			System.out.println("Successfully Write Pervaisve Info to File...");
+    	} catch (UnsupportedEncodingException e) {
+			System.out.println( "UnsupportedEncodingException!");
+			return;
+		} catch (FileNotFoundException e) {
+			System.out.println( "FileNotFoundException!");
+			return;
+		} catch (IOException e) {
+			System.out.println( "FileNotFoundException!");
+			return;
+		}
+    }
 }
