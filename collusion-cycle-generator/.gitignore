@@ -6,4 +6,5 @@
 .project
 *.jar
 *.zip
-EZ-data-warehouse-output-with-pervasive-data
+*.rar
+*.csv

@@ -36,8 +36,8 @@ public class JGraph {
     	String dirName = "EZ-data-warehouse-output";
     	File dir = new File(dirName);
     	File[] files = dir.listFiles();
-    	String[] pervasiveData = new String[]{" "};
-    	String[] smallCycleData = new String[]{" "};
+    	String[] pervasiveData = new String[]{""};
+    	String[] smallCycleData = new String[]{""};
     	for(int i = 0; i < files.length; i++){
     		if(files[i].isFile()){
     			String filePath = ".\\" + dirName + "\\" + files[i].getName();
@@ -58,19 +58,19 @@ public class JGraph {
     	        /**
     	         * Colluion condition 1: cycle
     	         */
-    	        JohnsonSimpleCycles<String, DefaultEdge> cyclesFinder = new JohnsonSimpleCycles<String, DefaultEdge>(directedGraph) ;
-    	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
-    	        UpdateJSONFiles(reviewMatirx,
-    	        				reviewMatirxWithoutColludeReviewScore,
-    	        				cycles, 
-    	        				smallCycleData, 
-    	        				files[i].getName(), 
-    	        				dirName, 
-    	        				filePath);
+//    	        JohnsonSimpleCycles<String, DefaultEdge> cyclesFinder = new JohnsonSimpleCycles<String, DefaultEdge>(directedGraph) ;
+//    	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
+//    	        UpdateJSONFiles(reviewMatirx,
+//    	        				reviewMatirxWithoutColludeReviewScore,
+//    	        				cycles, 
+//    	        				smallCycleData, 
+//    	        				files[i].getName(), 
+//    	        				dirName, 
+//    	        				filePath);
     		}
     	}
-//    	writeEZPervasiveData(pervasiveData, ".\\" + dirName + "-with-pervasive-data");
-    	writeDataToFile(smallCycleData, ".\\" + dirName + "-with-small-cycle-data");
+    	writeDataToFile(pervasiveData, ".\\" + dirName + "-with-pervasive-data.csv");
+//    	writeDataToFile(smallCycleData, ".\\" + dirName + "-with-small-cycle-data.csv");
     }
     
     /**
@@ -174,7 +174,7 @@ public class JGraph {
 			    	g.addEdge(reviewerActorId, revieweeActorId);
 			    }
 			}
-//			calcPervasive(reviewMatirx, pervasiveData, taskId, scoreThreshold);
+			calcPervasive(reviewMatirx, pervasiveData, taskId, scoreThreshold);
 	        return g;
 		} catch (UnsupportedEncodingException e) {
 			System.out.println( "UnsupportedEncodingException!");
@@ -272,11 +272,11 @@ public class JGraph {
 	    		}
 	    	}
 	    	
-	    	smallCycleData[0] += (taskId + "\t");
-	    	smallCycleData[0] += (Integer.toString(smallCycleNum) + "\t");
-	    	smallCycleData[0] += (Double.toString((totalReviewNum - totalReviewNumWithoutCollusion) * 1.0 / totalReviewNum) + "\t");
-	    	smallCycleData[0] += (Double.toString(sumScore * 1.0 / totalReviewNum) + "\t");
-	    	smallCycleData[0] += (Double.toString(sumScoreWithoutCollusion * 1.0 / totalReviewNumWithoutCollusion) + "\t\n");
+	    	smallCycleData[0] += (taskId + ", ");
+	    	smallCycleData[0] += (Integer.toString(smallCycleNum) + ", ");
+	    	smallCycleData[0] += (Double.toString((totalReviewNum - totalReviewNumWithoutCollusion) * 1.0 / totalReviewNum) + ", ");
+	    	smallCycleData[0] += (Double.toString(sumScore * 1.0 / totalReviewNum) + ", ");
+	    	smallCycleData[0] += (Double.toString(sumScoreWithoutCollusion * 1.0 / totalReviewNumWithoutCollusion) + "\n");
 	    	// append collude_cycles info
 			obj.put("colluder_cycles", colluderCycles);
 		} catch (UnsupportedEncodingException e) {
@@ -292,22 +292,22 @@ public class JGraph {
 			e.printStackTrace();
 		}
     	// write to json file
-//    	try (FileWriter file = new FileWriter(filePath.replaceAll(dirName, dirName + "-with-collusion-cycle"))) {
-//    		// beautify json
-//    		ObjectMapper mapper = new ObjectMapper();
-//    		Object json = mapper.readValue(obj.toString(), Object.class);
-//			file.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
-//			System.out.println("Successfully Copied JSON Object to File...");
-//    	} catch (UnsupportedEncodingException e) {
-//			System.out.println( "UnsupportedEncodingException!");
-//			return;
-//		} catch (FileNotFoundException e) {
-//			System.out.println( "FileNotFoundException!");
-//			return;
-//		} catch (IOException e) {
-//			System.out.println( "FileNotFoundException!");
-//			return;
-//		}
+    	try (FileWriter file = new FileWriter(filePath.replaceAll(dirName, dirName + "-with-collusion-cycle"))) {
+    		// beautify json
+    		ObjectMapper mapper = new ObjectMapper();
+    		Object json = mapper.readValue(obj.toString(), Object.class);
+			file.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
+			System.out.println("Successfully Copied JSON Object to File...");
+    	} catch (UnsupportedEncodingException e) {
+			System.out.println( "UnsupportedEncodingException!");
+			return;
+		} catch (FileNotFoundException e) {
+			System.out.println( "FileNotFoundException!");
+			return;
+		} catch (IOException e) {
+			System.out.println( "FileNotFoundException!");
+			return;
+		}
     }
     
     /**
@@ -338,7 +338,7 @@ public class JGraph {
     								  String[] pervasiveData,
     								  String taskId,
     								  double scoreThreshold){
-    	pervasiveData[0] += (taskId + "\t");
+    	pervasiveData[0] += (taskId + ", ");
     	int reviewCount = 0;
     	int pervasiveColluder = 0;
     	int totalNumofPervasiveReviews = 0;
@@ -364,9 +364,8 @@ public class JGraph {
     			totalNumofPervasiveReviews += numOfScoreBiggerThanThreshold;
     		}
     	}
-    	pervasiveData[0] += (Integer.toString(pervasiveColluder) + "\t");
-    	pervasiveData[0] += (Double.toString(totalNumofPervasiveReviews * 1.0 / reviewCount) + "\t");
-    	pervasiveData[0] += "\n ";
+    	pervasiveData[0] += (Integer.toString(pervasiveColluder) + ", ");
+    	pervasiveData[0] += (Double.toString(totalNumofPervasiveReviews * 1.0 / reviewCount) + "\n");
     }
     
     /**
