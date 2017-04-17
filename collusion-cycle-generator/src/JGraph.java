@@ -33,9 +33,10 @@ public class JGraph {
 
     public static void main(String[] args)
     {
-    	String dirName = "EZ-data-warehouse-output";
+    	String dirName = "EZ-pervasive";
     	File dir = new File(dirName);
     	File[] files = dir.listFiles();
+    	String[] pervasiveData = new String[]{" "};
     	for(int i = 0; i < files.length; i++){
     		if(files[i].isFile()){
     			String filePath = ".\\" + dirName + "\\" + files[i].getName();
@@ -43,8 +44,7 @@ public class JGraph {
     	    	// note undirected edges are printed as: {<v1>,<v2>}
     	        // note directed edges are printed as: (<v1>,<v2>)
     			Map<String, Map<String, Double>> reviewMatirx = new HashMap<String, Map<String, Double>>();
-    			List<String> pervasiveList = new ArrayList<String>();
-    	        DirectedGraph<String, DefaultEdge> directedGraph = createStringGraph(reviewMatirx, pervasiveList, files[i].getName(), dirName, filePath);
+    	        DirectedGraph<String, DefaultEdge> directedGraph = createStringGraph(reviewMatirx, pervasiveData, files[i].getName(), filePath);
     	        System.out.println(directedGraph.toString());
     	        // create a graph based on URL objects
     	        // DirectedGraph<URL, DefaultEdge> hrefGraph = createHrefGraph();
@@ -58,7 +58,7 @@ public class JGraph {
     	        
     		}
     	}
-    	
+    	writeEZPervasiveData(pervasiveData);
     }
     
     /**
@@ -131,9 +131,8 @@ public class JGraph {
      * @return a graph based on String objects.
      */
     private static DirectedGraph<String, DefaultEdge> createStringGraph(Map<String, Map<String, Double>> reviewMatirx, 
-    																	List<String> pervasiveList,
+    																	String[] pervasiveData,
     																	String taskId,
-    																	String dirName,
     																	String filePath)
     {
     	DirectedGraph<String, DefaultEdge> g = new DefaultDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
@@ -153,7 +152,6 @@ public class JGraph {
 			    if(!g.containsVertex(revieweeActorId)) g.addVertex(revieweeActorId);
 			    double score = (double)((JSONObject) critiques.get(i)).get("score");   
 			    GenerateReviewMatrix(reviewMatirx, reviewerActorId, revieweeActorId, score);
-			    calcPervasive(reviewMatirx, pervasiveList, taskId, dirName, filePath, scoreThreshold);
 			    /**
 			     * Colluion condition 2: All grades in cycle >= 80 quantile score
 			     */
@@ -162,6 +160,7 @@ public class JGraph {
 			    	g.addEdge(reviewerActorId, revieweeActorId);
 			    }
 			}
+			calcPervasive(reviewMatirx, pervasiveData, taskId, scoreThreshold);
 	        return g;
 		} catch (UnsupportedEncodingException e) {
 			System.out.println( "UnsupportedEncodingException!");
@@ -281,20 +280,20 @@ public class JGraph {
     }
 
     /**
-     * Populate pervasive list
+     * Populate pervasive data
      * @param reviewMatirx
-     * @param pervasiveList
+     * @param pervasiveData
      * @param taskId
      * @param scoreThreshold
      */
     private static void calcPervasive(Map<String, Map<String, Double>> reviewMatirx, 
-    								  List<String> pervasiveList, 
+    								  String[] pervasiveData,
     								  String taskId,
-    								  String dirName,
-    								  String filePath,
     								  double scoreThreshold){
-    	pervasiveList = new ArrayList<String>();
+    	pervasiveData[0] += (taskId + "\t");
     	int reviewCount = 0;
+    	int pervasiveColluder = 0;
+    	int totalNumofPervasiveReviews = 0;
     	for(String reviewer : reviewMatirx.keySet()){
     		reviewCount += reviewMatirx.get(reviewer).size();
     	}
@@ -313,15 +312,24 @@ public class JGraph {
     		 * Pervasive condition 2: (review score >= 80 quantile score)/total review done >= 1 - ¦Å2
     		 */
     		if(numOfScoreBiggerThanThreshold * 1.0 / reviewMatirx.get(reviewer).size() >= 1 - PERCENTAGE_ADJUSTMENT){
-    			pervasiveList.add(reviewer);
+    			pervasiveColluder++;
+    			totalNumofPervasiveReviews += numOfScoreBiggerThanThreshold;
     		}
     	}
-    	pervasiveList.add(Double.toString(pervasiveList.size() * 1.0 / reviewMatirx.size()));
-    	
+    	pervasiveData[0] += (Integer.toString(pervasiveColluder) + "\t");
+    	pervasiveData[0] += (Double.toString(totalNumofPervasiveReviews * 1.0 / reviewCount) + "\t");
+    	pervasiveData[0] += "\n ";
+    }
+    
+    /**
+     * 
+     * @param pervasiveData
+     */
+    private static void writeEZPervasiveData(String[] pervasiveData){
     	// write to json file
-    	try (FileWriter file = new FileWriter(filePath.replaceAll(dirName, "EZ-data-warehouse-output-pervasive-data"))) {
+    	try (FileWriter file = new FileWriter(".\\EZ-data-warehouse-output-with-pervasive-data")) {
     		// beautify json
-			file.write(pervasiveList.toString());
+			file.write(pervasiveData[0]);
 			System.out.println("Successfully Write Pervaisve Info to File...");
     	} catch (UnsupportedEncodingException e) {
 			System.out.println( "UnsupportedEncodingException!");
