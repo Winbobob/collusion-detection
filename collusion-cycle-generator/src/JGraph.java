@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.jgrapht.*;
+import org.jgrapht.alg.cycle.HawickJamesSimpleCycles;
 import org.jgrapht.alg.cycle.JohnsonSimpleCycles;
 import org.jgrapht.graph.*;
 import org.json.simple.JSONArray;
@@ -58,7 +59,7 @@ public class JGraph {
     	        /**
     	         * Colluion condition 1: cycle
     	         */
-//    	        JohnsonSimpleCycles<String, DefaultEdge> cyclesFinder = new JohnsonSimpleCycles<String, DefaultEdge>(directedGraph) ;
+//    	        HawickJamesSimpleCycles<String, DefaultEdge> cyclesFinder = new HawickJamesSimpleCycles<String, DefaultEdge>(directedGraph) ;
 //    	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
 //    	        UpdateJSONFiles(reviewMatirx,
 //    	        				reviewMatirxWithoutColludeReviewScore,
@@ -174,7 +175,7 @@ public class JGraph {
 			    	g.addEdge(reviewerActorId, revieweeActorId);
 			    }
 			}
-			calcPervasive(reviewMatirx, pervasiveData, taskId, scoreThreshold);
+			calcPervasive(reviewMatirx, reviewMatirxWithoutColludeReviewScore, pervasiveData, taskId, scoreThreshold);
 	        return g;
 		} catch (UnsupportedEncodingException e) {
 			System.out.println( "UnsupportedEncodingException!");
@@ -256,7 +257,7 @@ public class JGraph {
 	        		for(int m = 0; m < currentCycle.size(); m++){
 		        		Map<String, Double> tempMap = reviewMatirxWithoutColludeReviewScore.get(currentCycle.get(m));
 		        		for(int n = 0; n < currentCycle.size(); n++){
-		        			if(tempMap.containsKey(currentCycle.get(n))){
+		        			if(tempMap != null && tempMap.containsKey(currentCycle.get(n))){
 		        				tempMap.remove(currentCycle.get(n));
 		        			}
 		        		}
@@ -334,7 +335,8 @@ public class JGraph {
      * @param taskId
      * @param scoreThreshold
      */
-    private static void calcPervasive(Map<String, Map<String, Double>> reviewMatirx, 
+    private static void calcPervasive(Map<String, Map<String, Double>> reviewMatirx,
+    								  Map<String, Map<String, Double>> reviewMatirxWithoutColludeReviewScore,
     								  String[] pervasiveData,
     								  String taskId,
     								  double scoreThreshold){
@@ -345,7 +347,7 @@ public class JGraph {
     	for(String reviewer : reviewMatirx.keySet()){
     		reviewCount += reviewMatirx.get(reviewer).size();
     	}
-    	double avgReviewCount = reviewCount / reviewMatirx.size();
+    	double avgReviewCount = reviewCount / (reviewMatirx.size() == 0 ? 1 : reviewMatirx.size());
     	for(String reviewer : reviewMatirx.keySet()){
     		int numOfScoreBiggerThanThreshold = 0;
     		/**
@@ -355,13 +357,15 @@ public class JGraph {
     			for(String reviewee: reviewMatirx.get(reviewer).keySet()){
     				if(reviewMatirx.get(reviewer).get(reviewee) >= scoreThreshold) numOfScoreBiggerThanThreshold++;
     			}
-    		}
-    		/**
-    		 * Pervasive condition 2: (review score >= 80 quantile score)/total review done >= 1 - ¦Å2
-    		 */
-    		if(numOfScoreBiggerThanThreshold * 1.0 / reviewMatirx.get(reviewer).size() >= 1 - PERCENTAGE_ADJUSTMENT){
-    			pervasiveColluder++;
-    			totalNumofPervasiveReviews += numOfScoreBiggerThanThreshold;
+	    		/**
+	    		 * Pervasive condition 2: (review score >= 80 quantile score)/total review done >= 1 - ¦Å2
+	    		 */
+	    		if(numOfScoreBiggerThanThreshold * 1.0 / reviewMatirx.get(reviewer).size() >= 1 - PERCENTAGE_ADJUSTMENT){
+	    			pervasiveColluder++;
+	    			totalNumofPervasiveReviews += numOfScoreBiggerThanThreshold;
+	    			// remove pervasive reviews or not from all reviews
+	    			reviewMatirxWithoutColludeReviewScore.remove(reviewer);
+	    		}
     		}
     	}
     	pervasiveData[0] += (Integer.toString(pervasiveColluder) + ", ");
