@@ -5,30 +5,29 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.jgrapht.*;
 import org.jgrapht.alg.cycle.HawickJamesSimpleCycles;
-import org.jgrapht.alg.cycle.JohnsonSimpleCycles;
 import org.jgrapht.graph.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
-public class JGraph {
+public class JGraph_for_hign_volume_dataset {
 	
 	// constant definition
 	public static final int CIRCLE_SIZE = 4; // ¦Â
 	public static final double PERCENTAGE_ADJUSTMENT = 0.05; //¦Å1, ¦Å2
 	
 	
-    private JGraph()
+    private JGraph_for_hign_volume_dataset()
     {
     } // ensure non-instantiability.
 
@@ -59,19 +58,19 @@ public class JGraph {
     	        /**
     	         * Colluion condition 1: cycle
     	         */
-//    	        HawickJamesSimpleCycles<String, DefaultEdge> cyclesFinder = new HawickJamesSimpleCycles<String, DefaultEdge>(directedGraph) ;
-//    	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
-//    	        UpdateJSONFiles(reviewMatirx,
-//    	        				reviewMatirxWithoutColludeReviewScore,
-//    	        				cycles, 
-//    	        				smallCycleData, 
-//    	        				files[i].getName(), 
-//    	        				dirName, 
-//    	        				filePath);
+    	        HawickJamesSimpleCycles<String, DefaultEdge> cyclesFinder = new HawickJamesSimpleCycles<String, DefaultEdge>(directedGraph) ;
+    	        List<List<String>> cycles = cyclesFinder.findSimpleCycles();
+    	        UpdateJSONFiles(reviewMatirx,
+    	        				reviewMatirxWithoutColludeReviewScore,
+    	        				cycles, 
+    	        				smallCycleData, 
+    	        				files[i].getName(), 
+    	        				dirName, 
+    	        				filePath);
     		}
     	}
-    	writeDataToFile(pervasiveData, ".\\" + dirName + "-with-pervasive-data.csv");
-//    	writeDataToFile(smallCycleData, ".\\" + dirName + "-with-small-cycle-data.csv");
+//    	writeDataToFile(pervasiveData, ".\\" + dirName + "-with-pervasive-data.csv");
+    	writeDataToFile(smallCycleData, ".\\" + dirName + "-with-small-cycle-data.csv");
     }
     
     /**
@@ -154,9 +153,19 @@ public class JGraph {
     	try {
 			Object fileContent =  parser.parse(new FileReader(filePath));
 			JSONObject obj = (JSONObject) fileContent;
-			double scoreThreshold = (double) obj.get("80 quantile score");
+			double scoreThreshold = (double) (obj.get("80 quantile score") == null ? 0.0 : obj.get("80 quantile score"));
 			// get the critiques as an Array
 			JSONArray critiques = (JSONArray) obj.get("critiques");
+			for (int i = 0; i < critiques.size(); i++)
+			{
+			    String reviewerActorId = (String)((JSONObject) critiques.get(i)).get("reviewer_actor_id");
+			    String revieweeActorId = (String)((JSONObject) critiques.get(i)).get("reviewee_actor_id");
+			    double score = (double)((JSONObject) critiques.get(i)).get("score");   
+			    GenerateReviewMatrix(reviewMatirx, reviewerActorId, revieweeActorId, score);
+			    GenerateReviewMatrix(reviewMatirxWithoutColludeReviewScore, reviewerActorId, revieweeActorId, score);
+			}
+			calcPervasive(reviewMatirx, reviewMatirxWithoutColludeReviewScore, pervasiveData, taskId, scoreThreshold);
+			//generate graph w/o pervasive reviewers
 			for (int i = 0; i < critiques.size(); i++)
 			{
 			    String reviewerActorId = (String)((JSONObject) critiques.get(i)).get("reviewer_actor_id");
@@ -165,17 +174,15 @@ public class JGraph {
 			    if(!g.containsVertex(reviewerActorId)) g.addVertex(reviewerActorId);
 			    if(!g.containsVertex(revieweeActorId)) g.addVertex(revieweeActorId);
 			    double score = (double)((JSONObject) critiques.get(i)).get("score");   
-			    GenerateReviewMatrix(reviewMatirx, reviewerActorId, revieweeActorId, score);
-			    GenerateReviewMatrix(reviewMatirxWithoutColludeReviewScore, reviewerActorId, revieweeActorId, score);
 			    /**
 			     * Colluion condition 2: All grades in cycle >= 80 quantile score
 			     */
-			    if(score >= scoreThreshold && reviewerActorId.compareTo(revieweeActorId) != 0 )
+			    if(score >= scoreThreshold && reviewerActorId.compareTo(revieweeActorId) != 0 && reviewMatirxWithoutColludeReviewScore.containsKey(reviewerActorId))
 			    {
 			    	g.addEdge(reviewerActorId, revieweeActorId);
 			    }
 			}
-			calcPervasive(reviewMatirx, reviewMatirxWithoutColludeReviewScore, pervasiveData, taskId, scoreThreshold);
+			
 	        return g;
 		} catch (UnsupportedEncodingException e) {
 			System.out.println( "UnsupportedEncodingException!");
@@ -293,22 +300,22 @@ public class JGraph {
 			e.printStackTrace();
 		}
     	// write to json file
-    	try (FileWriter file = new FileWriter(filePath.replaceAll(dirName, dirName + "-with-collusion-cycle"))) {
-    		// beautify json
-    		ObjectMapper mapper = new ObjectMapper();
-    		Object json = mapper.readValue(obj.toString(), Object.class);
-			file.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
-			System.out.println("Successfully Copied JSON Object to File...");
-    	} catch (UnsupportedEncodingException e) {
-			System.out.println( "UnsupportedEncodingException!");
-			return;
-		} catch (FileNotFoundException e) {
-			System.out.println( "FileNotFoundException!");
-			return;
-		} catch (IOException e) {
-			System.out.println( "FileNotFoundException!");
-			return;
-		}
+//    	try (FileWriter file = new FileWriter(filePath.replaceAll(dirName, dirName + "-with-collusion-cycle"))) {
+//    		// beautify json
+//    		ObjectMapper mapper = new ObjectMapper();
+//    		Object json = mapper.readValue(obj.toString(), Object.class);
+//			file.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
+//			System.out.println("Successfully Copied JSON Object to File...");
+//    	} catch (UnsupportedEncodingException e) {
+//			System.out.println( "UnsupportedEncodingException!");
+//			return;
+//		} catch (FileNotFoundException e) {
+//			System.out.println( "FileNotFoundException!");
+//			return;
+//		} catch (IOException e) {
+//			System.out.println( "FileNotFoundException!");
+//			return;
+//		}
     }
     
     /**

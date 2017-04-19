@@ -5,12 +5,7 @@
   <version>0.0.1</version>
     <dependencies> 	  
 	<!-- https://mvnrepository.com/artifact/org.jgrapht/jgrapht-core -->
-	<dependency>
-	    <groupId>org.jgrapht</groupId>
-	    <artifactId>jgrapht-core</artifactId>
-	    <version>1.0.1</version>
-	</dependency>
-	 
+
 	<!-- https://mvnrepository.com/artifact/com.googlecode.json-simple/json-simple -->
 	<dependency>
 	    <groupId>com.googlecode.json-simple</groupId>
