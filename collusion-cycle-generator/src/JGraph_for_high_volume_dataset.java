@@ -20,14 +20,14 @@ import org.json.simple.parser.ParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
-public class JGraph_for_hign_volume_dataset {
+public class JGraph_for_high_volume_dataset {
 	
 	// constant definition
 	public static final int CIRCLE_SIZE = 4; // ¦Â
 	public static final double PERCENTAGE_ADJUSTMENT = 0.05; //¦Å1, ¦Å2
 	
 	
-    private JGraph_for_hign_volume_dataset()
+    private JGraph_for_high_volume_dataset()
     {
     } // ensure non-instantiability.
 
@@ -205,8 +205,8 @@ public class JGraph_for_hign_volume_dataset {
      * @param cycles
      * @param filePath
      */
-    private static void UpdateJSONFiles(Map<String, Map<String, Double>> reviewMatirx,
-    									Map<String, Map<String, Double>> reviewMatirxWithoutColludeReviewScore,
+    private static void UpdateJSONFiles(Map<String, Map<String, Double>> reviewMatrix,
+    									Map<String, Map<String, Double>> reviewMatrixWithoutColludeReviewScore,
     									List<List<String>> cycles,
     									String[] smallCycleData,
     									String taskId,
@@ -224,8 +224,8 @@ public class JGraph_for_hign_volume_dataset {
 	    	JSONArray colluderCycles = new JSONArray();
 	    	int smallCycleNum = 0;
 	    	int totalReviewNum = 0;
-	    	for(String reviewer : reviewMatirx.keySet()){
-	    		totalReviewNum += reviewMatirx.get(reviewer).size();
+	    	for(String reviewer : reviewMatrix.keySet()){
+	    		totalReviewNum += reviewMatrix.get(reviewer).size();
 	    	}
 	    	for (int i = 0; i < cycles.size(); i++){
 	        	List<String> currentCycle = cycles.get(i);
@@ -240,29 +240,45 @@ public class JGraph_for_hign_volume_dataset {
 	        	}
 	        	System.out.println();
 	        	/**
-	        	 * Colluion condition 4: avg(review scores in cycle)/avg(review scores out cycle) >= 1 + ¦Å1
+	        	 * Colluion condition 4: for any reviewer: avg(review scores received in cycle)/avg(review scores received out cycle) >= 1 + ¦Å1
 	        	 */
-	        	double sumScoreInCycle = 0.0;
-	        	int colludeReviewNum = 0;
+	        	double sumScoreReceivedInCycle = 0.0;
+        		double sumScoreReceivedOutCycle = 0.0;
+	        	int colludeReviewNumInCycle = 0;
+	        	int colludeReviewNumOutCycle = 0;
+	        	boolean isCollude = false;
 	        	for(int m = 0; m < currentCycle.size(); m++){
-	        		Map<String, Double> tempMap = reviewMatirx.get(currentCycle.get(m));
-	        		for(int n = 0; n < currentCycle.size(); n++){
-	        			if(tempMap.containsKey(currentCycle.get(n))){
-	        				sumScoreInCycle += tempMap.get(currentCycle.get(n));
-	        				colludeReviewNum++;
+	        		sumScoreReceivedInCycle = 0.0;
+	        		sumScoreReceivedOutCycle = 0.0;
+		        	colludeReviewNumInCycle = 0;
+		        	colludeReviewNumOutCycle = 0;
+		        	String reviewee = currentCycle.get(m);
+	        		for(String reviewer : reviewMatrix.keySet()){
+	        			if(reviewMatrix.get(reviewer).containsKey(reviewee)){
+	        				double tempScore = reviewMatrix.get(reviewer).get(reviewee);
+	        				if(currentCycle.contains(reviewer)){
+	        					sumScoreReceivedInCycle += tempScore;
+	        					colludeReviewNumInCycle++;
+	        				}
+	        				else{
+	        					sumScoreReceivedOutCycle += tempScore;
+	        					colludeReviewNumOutCycle++;
+	        				}
 	        			}
 	        		}
+	        		double avgScoreReceivedInCycle = sumScoreReceivedInCycle / colludeReviewNumInCycle;
+		        	double avgScoreReceivedOutCycle = sumScoreReceivedOutCycle / colludeReviewNumOutCycle;
+		        	if(avgScoreReceivedInCycle / avgScoreReceivedOutCycle >= 1 + PERCENTAGE_ADJUSTMENT){
+		        		isCollude = true;
+		        		break;
+		        	}
 	        	}
-	        	boolean isCollude = false;
-	        	double avgReviewScoreInCycle = sumScoreInCycle / colludeReviewNum;
-	        	double avgReviewScoreOutside = (sumScore - sumScoreInCycle) / (totalReviewNum - colludeReviewNum);
-	        	if(avgReviewScoreInCycle / avgReviewScoreOutside >= 1 + PERCENTAGE_ADJUSTMENT) isCollude = true;
 	        	if(isCollude && colluders.size() > 0) {
 	        		colluderCycles.add(colluders);
 	        		smallCycleNum++;
 	        		// update reviewMatirxWithoutColludeReviewScore hashmap
-	        		for(int m = 0; m < currentCycle.size(); m++){
-		        		Map<String, Double> tempMap = reviewMatirxWithoutColludeReviewScore.get(currentCycle.get(m));
+	        		for(int p = 0; p < currentCycle.size(); p++){
+		        		Map<String, Double> tempMap = reviewMatrixWithoutColludeReviewScore.get(currentCycle.get(p));
 		        		for(int n = 0; n < currentCycle.size(); n++){
 		        			if(tempMap != null && tempMap.containsKey(currentCycle.get(n))){
 		        				tempMap.remove(currentCycle.get(n));
@@ -273,10 +289,10 @@ public class JGraph_for_hign_volume_dataset {
 	        }
 	    	double sumScoreWithoutCollusion = 0;
 	    	int totalReviewNumWithoutCollusion = 0;
-	    	for(String reviewer : reviewMatirxWithoutColludeReviewScore.keySet()){
-	    		totalReviewNumWithoutCollusion += reviewMatirxWithoutColludeReviewScore.get(reviewer).size();
-	    		for(String reviewee: reviewMatirxWithoutColludeReviewScore.get(reviewer).keySet()){
-	    			sumScoreWithoutCollusion += reviewMatirxWithoutColludeReviewScore.get(reviewer).get(reviewee);
+	    	for(String reviewer : reviewMatrixWithoutColludeReviewScore.keySet()){
+	    		totalReviewNumWithoutCollusion += reviewMatrixWithoutColludeReviewScore.get(reviewer).size();
+	    		for(String reviewee: reviewMatrixWithoutColludeReviewScore.get(reviewer).keySet()){
+	    			sumScoreWithoutCollusion += reviewMatrixWithoutColludeReviewScore.get(reviewer).get(reviewee);
 	    		}
 	    	}
 	    	
